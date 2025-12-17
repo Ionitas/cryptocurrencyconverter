@@ -6,13 +6,31 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.4
+  sdk: '>=3.0.0 <5.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  font_awesome_flutter: 10.12.0
+  math_expressions: ^3.1.0
+  intl: ^0.20.2
+  http: 1.6.0
+  flutter_riverpod: 3.0.3
 
+  flutter_dotenv: ^6.0.0
+  url_launcher: ^6.3.2
+  rflutter_alert: ^2.0.7
+  package_info_plus: ^9.0.0
+
+
+  shared_preferences: ^2.5.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+
+  path_provider: ^2.1.5
+  window_manager: ^0.4.3
 
 
 dev_dependencies:
@@ -26,5 +44,5 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/
-
+    - .env
+    - assets/images/
