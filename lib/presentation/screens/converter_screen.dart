@@ -70,12 +70,13 @@ class _ConverterScreenState extends State<ConverterScreen>
     // Initialize calculator animation
     _calculatorController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 350),
+      reverseDuration: const Duration(milliseconds: 280),
     );
     _calculatorAnimation = CurvedAnimation(
       parent: _calculatorController,
       curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
+      reverseCurve: Curves.easeInQuad,
     );
     _calculatorController.value = 1.0; // Start visible
 
@@ -219,9 +220,7 @@ class _ConverterScreenState extends State<ConverterScreen>
       currentAmount = convertedAmount;
       displayValue = formatCalculatorResult(convertedAmount);
       calculatorExpression = '';
-      previousValue = null;
-      operation = null;
-      shouldResetDisplay = true;
+      resetCalculatorState();
       _updateDisplayCurrencies();
     });
 
@@ -241,11 +240,19 @@ class _ConverterScreenState extends State<ConverterScreen>
   }
 
   void _showCalculator() {
-    _calculatorController.animateTo(1.0);
+    _calculatorController.animateTo(
+      1.0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   void _hideCalculator() {
-    _calculatorController.animateTo(0.0);
+    _calculatorController.animateTo(
+      0.0,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeInQuad,
+    );
   }
 
   void _onCalculatorDragUpdate(DragUpdateDetails details) {
@@ -262,18 +269,37 @@ class _ConverterScreenState extends State<ConverterScreen>
 
   void _onCalculatorDragEnd(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
-    final progress = _dragOffset / _calculatorHeight;
+    final progress =
+        _calculatorHeight > 0 ? _dragOffset / _calculatorHeight : 0.0;
 
-    if (progress > 0.3 || velocity > 500) {
-      _hideCalculator();
-    } else {
-      _calculatorController.animateTo(1.0);
-    }
+    // Calculate the current visual position as animation value
+    final currentAnimValue = (1.0 - progress).clamp(0.0, 1.0);
 
+    // Stop any ongoing animation and set to current drag position
+    _calculatorController.value = currentAnimValue;
+
+    // Reset drag state
     setState(() {
       _dragOffset = 0;
       _isDragging = false;
     });
+
+    if (progress > 0.25 || velocity > 400) {
+      // Hide with faster animation when swiped
+      _calculatorController.animateTo(
+        0.0,
+        duration: Duration(
+            milliseconds: (180 * currentAnimValue).toInt().clamp(80, 200)),
+        curve: Curves.easeOut,
+      );
+    } else {
+      // Snap back with spring-like animation
+      _calculatorController.animateTo(
+        1.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutBack,
+      );
+    }
   }
 
   void _showAddCurrencyPicker() {

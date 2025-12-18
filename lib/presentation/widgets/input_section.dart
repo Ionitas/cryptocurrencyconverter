@@ -56,17 +56,11 @@ class InputSection extends StatelessWidget {
                     fontSize: labelFontSize,
                   ),
                 ),
-                if (calculatorExpression.isNotEmpty)
-                  Text(
-                    calculatorExpression,
-                    style: TextStyle(
-                      color: appTheme.textTertiary,
-                      fontSize: labelFontSize,
-                    ),
-                  ),
+                _buildCurrencyBadge(isTablet),
               ],
             ),
             const SizedBox(height: 8),
+            // Main display value (shows full expression when available)
             Row(
               children: [
                 Expanded(
@@ -84,10 +78,20 @@ class InputSection extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                _buildCurrencyBadge(isTablet),
               ],
             ),
+            // Show expression hint when there's an active calculation
+            if (calculatorExpression.isNotEmpty &&
+                calculatorExpression != displayValue) ...[
+              const SizedBox(height: 4),
+              Text(
+                calculatorExpression,
+                style: TextStyle(
+                  color: appTheme.textTertiary,
+                  fontSize: labelFontSize - 2,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -97,36 +101,25 @@ class InputSection extends StatelessWidget {
   Widget _buildCurrencyBadge(bool isTablet) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isTablet ? 16 : 12,
-        vertical: isTablet ? 10 : 8,
+        horizontal: isTablet ? 12 : 10,
+        vertical: isTablet ? 8 : 6,
       ),
       decoration: BoxDecoration(
         color: appTheme.background,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          CurrencyIcon(currency: selectedCurrency, size: isTablet ? 28 : 24),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                selectedCurrency?.symbol ?? '',
-                style: TextStyle(
-                  color: appTheme.textPrimary,
-                  fontSize: isTablet ? 18 : 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                selectedCurrency?.name ?? '',
-                style: TextStyle(
-                  color: appTheme.textTertiary,
-                  fontSize: isTablet ? 14 : 12,
-                ),
-              ),
-            ],
+          CurrencyIcon(currency: selectedCurrency, size: isTablet ? 24 : 20),
+          const SizedBox(width: 6),
+          Text(
+            selectedCurrency?.symbol ?? '',
+            style: TextStyle(
+              color: appTheme.textPrimary,
+              fontSize: isTablet ? 16 : 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

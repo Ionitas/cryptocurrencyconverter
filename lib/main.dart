@@ -7,6 +7,7 @@ import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/onboarding_service.dart';
 import 'presentation/screens/converter_screen.dart';
+import 'presentation/screens/no_internet_screen.dart';
 import 'presentation/onboarding/onboarding_screen.dart';
 
 void main() async {
@@ -60,25 +61,57 @@ class _MyAppState extends State<MyApp> {
   late final AppTheme _appTheme;
   bool _showOnboarding = true;
   bool _checkingOnboarding = true;
+  bool _noInternet = false;
 
   @override
   void initState() {
     super.initState();
     _appTheme = getIt<AppTheme>();
     _appTheme.addListener(_onThemeChanged);
-    _checkOnboardingStatus();
+    _checkInitialState();
   }
 
-  Future<void> _checkOnboardingStatus() async {
+  Future<void> _checkInitialState() async {
     final onboardingService = OnboardingService();
     final completed = await onboardingService.isOnboardingCompleted();
+
+    // If first time user (onboarding not completed), check internet
+    if (!completed) {
+      final hasInternet = await _checkInternetConnection();
+      if (!hasInternet && mounted) {
+        setState(() {
+          _noInternet = true;
+          _checkingOnboarding = false;
+        });
+        return;
+      }
+    }
 
     if (mounted) {
       setState(() {
         _showOnboarding = !completed;
         _checkingOnboarding = false;
+        _noInternet = false;
       });
     }
+  }
+
+  Future<bool> _checkInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com')
+          .timeout(const Duration(seconds: 5));
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  void _onRetryInternet() {
+    setState(() {
+      _checkingOnboarding = true;
+      _noInternet = false;
+    });
+    _checkInitialState();
   }
 
   void _onOnboardingComplete() {
@@ -169,9 +202,14 @@ class _MyAppState extends State<MyApp> {
       ),
       home: _checkingOnboarding
           ? _buildLoadingScreen()
-          : _showOnboarding
-              ? OnboardingScreen(onComplete: _onOnboardingComplete)
-              : const ConverterScreen(),
+          : _noInternet
+              ? NoInternetScreen(
+                  appTheme: _appTheme,
+                  onRetry: _onRetryInternet,
+                )
+              : _showOnboarding
+                  ? OnboardingScreen(onComplete: _onOnboardingComplete)
+                  : const ConverterScreen(),
     );
   }
 

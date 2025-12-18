@@ -37,16 +37,7 @@ class CurrencyCard extends StatelessWidget {
       direction: DismissDirection.endToStart,
       onDismissed: (direction) {
         onDismissed();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${currency.symbol} removed'),
-            action: SnackBarAction(
-              label: 'Undo',
-              onPressed: onUndo,
-            ),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        // No snackbar here - handled silently
       },
       background: Container(
         margin: const EdgeInsets.only(bottom: 8),
