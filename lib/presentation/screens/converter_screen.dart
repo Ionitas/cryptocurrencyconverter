@@ -220,30 +220,9 @@ class _ConverterScreenState extends State<ConverterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'You convert',
-                style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
-              ),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _displayValue = '1.245';
-                    _currentAmount = 1.245;
-                  });
-                },
-                child: const Text(
-                  'Max',
-                  style: TextStyle(
-                    color: Color(0xFF3B7FFF),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          const Text(
+            'You convert',
+            style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
           ),
           const SizedBox(height: 8),
           Row(
@@ -264,68 +243,36 @@ class _ConverterScreenState extends State<ConverterScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              GestureDetector(
-                onTap: _showCurrencyPicker,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1F2E),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      _buildCurrencyIcon(_selectedCurrency),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _selectedCurrency?.symbol ?? '',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            _selectedCurrency?.name ?? '',
-                            style: const TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.keyboard_arrow_down,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A1F2E),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.account_balance_wallet,
-                        size: 14, color: Color(0xFF6B7280)),
-                    SizedBox(width: 4),
-                    Text(
-                      'Balance: 1.245 BTC',
-                      style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                    _buildCurrencyIcon(_selectedCurrency),
+                    const SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedCurrency?.symbol ?? '',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _selectedCurrency?.name ?? '',
+                          style: const TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -369,6 +316,13 @@ class _ConverterScreenState extends State<ConverterScreen> {
       currency,
     );
 
+    // Calculate exchange rate: 1 unit of selected currency = X units of target currency
+    final exchangeRate = _repository.convert(
+      1.0,
+      _selectedCurrency!,
+      currency,
+    );
+
     return Dismissible(
       key: Key(currency.symbol),
       direction: DismissDirection.endToStart,
@@ -395,78 +349,80 @@ class _ConverterScreenState extends State<ConverterScreen> {
         alignment: Alignment.centerRight,
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF252B3D),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            _buildCurrencyIcon(currency),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            // Add current main currency to display list
+            _displayCurrencySymbols.add(_selectedCurrency!.symbol);
+            // Remove the tapped currency from display list
+            _displayCurrencySymbols.remove(currency.symbol);
+            // Set the tapped currency as main
+            _selectedCurrency = currency;
+            _updateDisplayCurrencies();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${currency.symbol} is now the main currency'),
+              backgroundColor: const Color(0xFF3B7FFF),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF252B3D),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              _buildCurrencyIcon(currency),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currency.symbol,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      currency.name,
+                      style: const TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    currency.symbol,
+                    _formatAmount(convertedAmount),
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    currency.name,
+                    '1 ${_selectedCurrency!.symbol} = ${_formatAmount(exchangeRate)} ${currency.symbol}',
                     style: const TextStyle(
                       color: Color(0xFF6B7280),
-                      fontSize: 13,
+                      fontSize: 11,
                     ),
                   ),
                 ],
               ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _formatAmount(convertedAmount),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                if (currency.changePercent24h != 0)
-                  Row(
-                    children: [
-                      Icon(
-                        currency.changePercent24h > 0
-                            ? Icons.trending_up
-                            : Icons.trending_down,
-                        size: 14,
-                        color: currency.changePercent24h > 0
-                            ? Colors.green
-                            : Colors.red,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${currency.changePercent24h.abs().toStringAsFixed(1)}%',
-                        style: TextStyle(
-                          color: currency.changePercent24h > 0
-                              ? Colors.green
-                              : Colors.red,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -955,86 +911,6 @@ class _ConverterScreenState extends State<ConverterScreen> {
       result = result.replaceAll(RegExp(r'\.$'), '');
     }
     return result;
-  }
-
-  void _showCurrencyPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF252B3D),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (BuildContext modalContext) => Container(
-        padding: const EdgeInsets.all(16),
-        height: MediaQuery.of(modalContext).size.height * 0.7,
-        child: Column(
-          children: [
-            const Text(
-              'Select Currency',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _allCurrencies.length,
-                itemBuilder: (context, index) {
-                  final currency = _allCurrencies[index];
-                  return ListTile(
-                    leading: _buildCurrencyIcon(currency),
-                    title: Text(
-                      currency.name,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    subtitle: Text(
-                      currency.symbol,
-                      style: const TextStyle(color: Color(0xFF6B7280)),
-                    ),
-                    trailing: currency.isCrypto
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Crypto',
-                              style:
-                                  TextStyle(color: Colors.blue, fontSize: 10),
-                            ),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'Fiat',
-                              style:
-                                  TextStyle(color: Colors.green, fontSize: 10),
-                            ),
-                          ),
-                    onTap: () {
-                      setState(() {
-                        _selectedCurrency = currency;
-                        _updateDisplayCurrencies();
-                      });
-                      Navigator.pop(modalContext);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _showSettings() async {
