@@ -6,6 +6,7 @@ import '../../data/datasources/fiat_api_datasource.dart';
 import '../../data/datasources/local_cache_datasource.dart';
 import '../../data/repositories/currency_repository_impl.dart';
 import '../../domain/repositories/currency_repository.dart';
+import '../theme/app_theme.dart';
 
 /// Global GetIt instance for dependency injection
 final getIt = GetIt.instance;
@@ -15,6 +16,9 @@ Future<void> setupDependencies() async {
   // External dependencies
   final prefs = await SharedPreferences.getInstance();
   getIt.registerSingleton<SharedPreferences>(prefs);
+
+  // Theme
+  getIt.registerSingleton<AppTheme>(AppTheme());
 
   // Data Sources
   getIt.registerLazySingleton<CryptoApiDataSource>(
