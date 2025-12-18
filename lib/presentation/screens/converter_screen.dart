@@ -10,12 +10,21 @@ class ConverterScreen extends StatefulWidget {
   State<ConverterScreen> createState() => _ConverterScreenState();
 }
 
-class _ConverterScreenState extends State<ConverterScreen> {
+class _ConverterScreenState extends State<ConverterScreen>
+    with TickerProviderStateMixin {
   final CurrencyRepository _repository = getIt<CurrencyRepository>();
   List<Currency> _allCurrencies = [];
 
   Currency? _selectedCurrency;
   List<Currency> _displayCurrencies = [];
+  List<String> _displayCurrencyOrder = [
+    'USD',
+    'EUR',
+    'ETH',
+    'GBP',
+    'JPY',
+    'USDT'
+  ];
   Set<String> _displayCurrencySymbols = {
     'USD',
     'EUR',
@@ -83,16 +92,20 @@ class _ConverterScreenState extends State<ConverterScreen> {
   }
 
   void _updateDisplayCurrencies() {
-    _displayCurrencies = _allCurrencies
-        .where((c) =>
-            _displayCurrencySymbols.contains(c.symbol) &&
-            c.id != _selectedCurrency?.id)
+    final currencyMap = {for (var c in _allCurrencies) c.symbol: c};
+    _displayCurrencies = _displayCurrencyOrder
+        .where((symbol) =>
+            _displayCurrencySymbols.contains(symbol) &&
+            currencyMap.containsKey(symbol) &&
+            currencyMap[symbol]!.id != _selectedCurrency?.id)
+        .map((symbol) => currencyMap[symbol]!)
         .toList();
   }
 
   void _removeCurrency(Currency currency) {
     setState(() {
       _displayCurrencySymbols.remove(currency.symbol);
+      _displayCurrencyOrder.remove(currency.symbol);
       _updateDisplayCurrencies();
     });
   }
@@ -100,7 +113,28 @@ class _ConverterScreenState extends State<ConverterScreen> {
   void _addCurrency(Currency currency) {
     setState(() {
       _displayCurrencySymbols.add(currency.symbol);
+      if (!_displayCurrencyOrder.contains(currency.symbol)) {
+        _displayCurrencyOrder.add(currency.symbol);
+      }
       _updateDisplayCurrencies();
+    });
+  }
+
+  void _onReorderCurrencies(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final currency = _displayCurrencies.removeAt(oldIndex);
+      _displayCurrencies.insert(newIndex, currency);
+      // Update the order list
+      _displayCurrencyOrder = _displayCurrencies.map((c) => c.symbol).toList();
+      // Add back any symbols not currently displayed
+      for (var symbol in _displayCurrencySymbols) {
+        if (!_displayCurrencyOrder.contains(symbol)) {
+          _displayCurrencyOrder.add(symbol);
+        }
+      }
     });
   }
 
@@ -146,39 +180,94 @@ class _ConverterScreenState extends State<ConverterScreen> {
               children: [
                 Column(
                   children: [
-                    _buildInputSection(),
-                    Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.all(16),
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'CONVERTED VALUES',
-                                style: TextStyle(
-                                  color: Color(0xFF6B7280),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                              Text(
-                                '${_displayCurrencies.length} currencies',
-                                style: const TextStyle(
-                                  color: Color(0xFF6B7280),
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      transitionBuilder:
+                          (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, -0.1),
+                              end: Offset.zero,
+                            ).animate(CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            )),
+                            child: child,
                           ),
-                          const SizedBox(height: 12),
-                          ..._displayCurrencies
-                              .map((currency) => _buildCurrencyCard(currency)),
-                          _buildAddCurrencyCard(),
-                          const SizedBox(height: 8),
-                          _buildPremiumCard(),
-                          const SizedBox(height: 80),
+                        );
+                      },
+                      child: _buildInputSection(),
+                    ),
+                    Expanded(
+                      child: CustomScrollView(
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.all(16),
+                            sliver: SliverToBoxAdapter(
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'CONVERTED VALUES',
+                                    style: TextStyle(
+                                      color: Color(0xFF6B7280),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.drag_handle,
+                                        color: Color(0xFF6B7280),
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${_displayCurrencies.length} currencies',
+                                        style: const TextStyle(
+                                          color: Color(0xFF6B7280),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverReorderableList(
+                              itemBuilder: (context, index) {
+                                final currency = _displayCurrencies[index];
+                                return _buildCurrencyCard(
+                                  currency,
+                                  index,
+                                  key: ValueKey(currency.symbol),
+                                );
+                              },
+                              itemCount: _displayCurrencies.length,
+                              onReorder: _onReorderCurrencies,
+                            ),
+                          ),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverToBoxAdapter(
+                              child: Column(
+                                children: [
+                                  _buildAddCurrencyCard(),
+                                  const SizedBox(height: 8),
+                                  _buildPremiumCard(),
+                                  const SizedBox(height: 80),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -207,6 +296,7 @@ class _ConverterScreenState extends State<ConverterScreen> {
 
   Widget _buildInputSection() {
     return Container(
+      key: ValueKey(_selectedCurrency?.symbol ?? 'none'),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -307,7 +397,7 @@ class _ConverterScreenState extends State<ConverterScreen> {
     );
   }
 
-  Widget _buildCurrencyCard(Currency currency) {
+  Widget _buildCurrencyCard(Currency currency, int index, {Key? key}) {
     if (_selectedCurrency == null) return const SizedBox();
 
     final convertedAmount = _repository.convert(
@@ -324,7 +414,7 @@ class _ConverterScreenState extends State<ConverterScreen> {
     );
 
     return Dismissible(
-      key: Key(currency.symbol),
+      key: key ?? Key('dismissible_${currency.symbol}'),
       direction: DismissDirection.endToStart,
       onDismissed: (direction) {
         _removeCurrency(currency);
@@ -354,8 +444,12 @@ class _ConverterScreenState extends State<ConverterScreen> {
           setState(() {
             // Add current main currency to display list
             _displayCurrencySymbols.add(_selectedCurrency!.symbol);
+            if (!_displayCurrencyOrder.contains(_selectedCurrency!.symbol)) {
+              _displayCurrencyOrder.insert(index, _selectedCurrency!.symbol);
+            }
             // Remove the tapped currency from display list
             _displayCurrencySymbols.remove(currency.symbol);
+            _displayCurrencyOrder.remove(currency.symbol);
             // Set the tapped currency as main
             _selectedCurrency = currency;
             _updateDisplayCurrencies();
@@ -368,7 +462,9 @@ class _ConverterScreenState extends State<ConverterScreen> {
             ),
           );
         },
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -377,6 +473,18 @@ class _ConverterScreenState extends State<ConverterScreen> {
           ),
           child: Row(
             children: [
+              ReorderableDragStartListener(
+                index: index,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  child: const Icon(
+                    Icons.drag_indicator,
+                    color: Color(0xFF4B5563),
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               _buildCurrencyIcon(currency),
               const SizedBox(width: 12),
               Expanded(
