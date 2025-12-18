@@ -45,7 +45,13 @@ class _ConverterScreenState extends State<ConverterScreen>
   bool _isLoading = true;
   String _statusMessage = '';
   bool _fromCache = false;
-  bool _isCalculatorVisible = true;
+
+  // Calculator animation state
+  late AnimationController _calculatorController;
+  late Animation<double> _calculatorAnimation;
+  double _dragOffset = 0;
+  bool _isDragging = false;
+  double _calculatorHeight = 0;
 
   @override
   void initState() {
@@ -53,12 +59,26 @@ class _ConverterScreenState extends State<ConverterScreen>
     currentAmount = 0.5;
     displayValue = '0.5';
     _appTheme.addListener(_onThemeChanged);
+
+    // Initialize calculator animation
+    _calculatorController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _calculatorAnimation = CurvedAnimation(
+      parent: _calculatorController,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _calculatorController.value = 1.0; // Start visible
+
     _loadData();
   }
 
   @override
   void dispose() {
     _appTheme.removeListener(_onThemeChanged);
+    _calculatorController.dispose();
     super.dispose();
   }
 
@@ -195,6 +215,42 @@ class _ConverterScreenState extends State<ConverterScreen>
     });
   }
 
+  void _showCalculator() {
+    _calculatorController.animateTo(1.0);
+  }
+
+  void _hideCalculator() {
+    _calculatorController.animateTo(0.0);
+  }
+
+  void _onCalculatorDragUpdate(DragUpdateDetails details) {
+    if (!_isDragging) {
+      setState(() => _isDragging = true);
+    }
+    final delta = details.delta.dy;
+    if (delta > 0 || _dragOffset > 0) {
+      setState(() {
+        _dragOffset = (_dragOffset + delta).clamp(0, _calculatorHeight);
+      });
+    }
+  }
+
+  void _onCalculatorDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    final progress = _dragOffset / _calculatorHeight;
+
+    if (progress > 0.3 || velocity > 500) {
+      _hideCalculator();
+    } else {
+      _calculatorController.animateTo(1.0);
+    }
+
+    setState(() {
+      _dragOffset = 0;
+      _isDragging = false;
+    });
+  }
+
   void _showAddCurrencyPicker() {
     final availableCurrencies = _allCurrencies
         .where((c) =>
@@ -278,41 +334,109 @@ class _ConverterScreenState extends State<ConverterScreen>
   }
 
   Widget _buildMainContent() {
-    return Column(
+    return Stack(
       children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (child, animation) {
-            return FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, -0.1),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                )),
-                child: child,
+        // Main scrollable content - always visible
+        Column(
+          children: [
+            RepaintBoundary(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, -0.1),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      )),
+                      child: child,
+                    ),
+                  );
+                },
+                child: InputSection(
+                  key: ValueKey(_selectedCurrency?.symbol),
+                  selectedCurrency: _selectedCurrency,
+                  displayValue: displayValue,
+                  calculatorExpression: calculatorExpression,
+                  appTheme: _appTheme,
+                  onTap: _showCalculator,
+                ),
               ),
-            );
-          },
-          child: InputSection(
-            key: ValueKey(_selectedCurrency?.symbol),
-            selectedCurrency: _selectedCurrency,
-            displayValue: displayValue,
-            calculatorExpression: calculatorExpression,
-            appTheme: _appTheme,
-            onTap: () {
-              if (!_isCalculatorVisible) {
-                setState(() => _isCalculatorVisible = true);
-              }
-            },
-          ),
+            ),
+            Expanded(child: _buildCurrencyList()),
+          ],
         ),
-        Expanded(child: _buildCurrencyList()),
-        _buildBottomSection(),
+        // Calculator overlay with animation
+        _buildCalculatorOverlay(),
       ],
+    );
+  }
+
+  Widget _buildCalculatorOverlay() {
+    return AnimatedBuilder(
+      animation: _calculatorAnimation,
+      builder: (context, child) {
+        final animValue = _calculatorAnimation.value;
+        // Calculate effective offset including drag
+        final dragProgress = _isDragging
+            ? _dragOffset / (_calculatorHeight.clamp(1, double.infinity))
+            : 0.0;
+        final effectiveProgress = (animValue - dragProgress).clamp(0.0, 1.0);
+
+        if (effectiveProgress <= 0 && !_isDragging) {
+          return _buildBottomBar();
+        }
+
+        return Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: GestureDetector(
+            onVerticalDragUpdate: _onCalculatorDragUpdate,
+            onVerticalDragEnd: _onCalculatorDragEnd,
+            child: Transform.translate(
+              offset: Offset(
+                  0,
+                  _isDragging
+                      ? _dragOffset
+                      : (1 - animValue) * _calculatorHeight),
+              child: Opacity(
+                opacity: effectiveProgress.clamp(0.3, 1.0),
+                child: _MeasureSize(
+                  onChange: (size) {
+                    if (_calculatorHeight != size.height) {
+                      _calculatorHeight = size.height;
+                    }
+                  },
+                  child: CalculatorPad(
+                    appTheme: _appTheme,
+                    onInput: _onCalculatorInput,
+                    onHide: _hideCalculator,
+                    slideProgress: effectiveProgress,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBottomBar() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: BottomBar(
+        appTheme: _appTheme,
+        onAddCurrency: _showAddCurrencyPicker,
+        onShowCalculator: _showCalculator,
+      ),
     );
   }
 
@@ -320,7 +444,10 @@ class _ConverterScreenState extends State<ConverterScreen>
     final mediaQuery = MediaQuery.of(context);
     final isTablet = mediaQuery.size.shortestSide >= 600;
     final horizontalPadding = isTablet ? 24.0 : 16.0;
-    final bottomSpacing = isTablet ? 120.0 : 100.0;
+    // Dynamic bottom spacing for calculator overlay
+    final bottomSpacing = _calculatorHeight > 0
+        ? _calculatorHeight + 20
+        : (isTablet ? 120.0 : 100.0);
 
     return CustomScrollView(
       slivers: [
@@ -335,23 +462,25 @@ class _ConverterScreenState extends State<ConverterScreen>
           sliver: SliverReorderableList(
             itemBuilder: (context, index) {
               final currency = _displayCurrencies[index];
-              return CurrencyCard(
+              return RepaintBoundary(
                 key: ValueKey(currency.symbol),
-                currency: currency,
-                selectedCurrency: _selectedCurrency!,
-                index: index,
-                convertedAmount: _repository.convert(
-                  currentAmount,
-                  _selectedCurrency!,
-                  currency,
+                child: CurrencyCard(
+                  currency: currency,
+                  selectedCurrency: _selectedCurrency!,
+                  index: index,
+                  convertedAmount: _repository.convert(
+                    currentAmount,
+                    _selectedCurrency!,
+                    currency,
+                  ),
+                  exchangeRate:
+                      _repository.convert(1.0, _selectedCurrency!, currency),
+                  appTheme: _appTheme,
+                  onTap: () => _swapCurrency(currency, index),
+                  onDismissed: () => _removeCurrency(currency),
+                  onUndo: () => _addCurrency(currency),
+                  formatAmount: formatAmount,
                 ),
-                exchangeRate:
-                    _repository.convert(1.0, _selectedCurrency!, currency),
-                appTheme: _appTheme,
-                onTap: () => _swapCurrency(currency, index),
-                onDismissed: () => _removeCurrency(currency),
-                onUndo: () => _addCurrency(currency),
-                formatAmount: formatAmount,
               );
             },
             itemCount: _displayCurrencies.length,
@@ -408,19 +537,38 @@ class _ConverterScreenState extends State<ConverterScreen>
       ],
     );
   }
+}
 
-  Widget _buildBottomSection() {
-    if (_isCalculatorVisible) {
-      return CalculatorPad(
-        appTheme: _appTheme,
-        onInput: _onCalculatorInput,
-        onHide: () => setState(() => _isCalculatorVisible = false),
-      );
+/// Helper widget to measure child size
+class _MeasureSize extends StatefulWidget {
+  final Widget child;
+  final ValueChanged<Size> onChange;
+
+  const _MeasureSize({
+    required this.child,
+    required this.onChange,
+  });
+
+  @override
+  State<_MeasureSize> createState() => _MeasureSizeState();
+}
+
+class _MeasureSizeState extends State<_MeasureSize> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(_measureSize);
+  }
+
+  void _measureSize(_) {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox != null && renderBox.hasSize) {
+      widget.onChange(renderBox.size);
     }
-    return BottomBar(
-      appTheme: _appTheme,
-      onAddCurrency: _showAddCurrencyPicker,
-      onShowCalculator: () => setState(() => _isCalculatorVisible = true),
-    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }

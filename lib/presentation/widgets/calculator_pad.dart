@@ -1,76 +1,69 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
 
-/// Calculator keypad widget for inputting amounts
+/// Calculator keypad widget with smooth slide animation and Liquid Glass effect
 class CalculatorPad extends StatefulWidget {
   final AppTheme appTheme;
   final Function(String) onInput;
   final VoidCallback onHide;
+  final double slideProgress; // 0.0 = hidden, 1.0 = fully visible
 
   const CalculatorPad({
     super.key,
     required this.appTheme,
     required this.onInput,
     required this.onHide,
+    this.slideProgress = 1.0,
   });
 
   @override
   State<CalculatorPad> createState() => _CalculatorPadState();
 }
 
-class _CalculatorPadState extends State<CalculatorPad>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<Offset> _slideAnimation;
-  double _dragOffset = 0;
+class _CalculatorPadState extends State<CalculatorPad> {
+  // Cache button data for performance
+  static const List<List<String>> _buttonValues = [
+    ['C', '⌫', '%', '÷'],
+    ['7', '8', '9', '×'],
+    ['4', '5', '6', '-'],
+    ['1', '2', '3', '+'],
+    ['hide', '0', '.', '='],
+  ];
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(0, 1),
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOut,
-    ));
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _onVerticalDragUpdate(DragUpdateDetails details) {
-    if (details.delta.dy > 0) {
-      setState(() {
-        _dragOffset += details.delta.dy;
-      });
-    } else if (_dragOffset > 0) {
-      setState(() {
-        _dragOffset =
-            (_dragOffset + details.delta.dy).clamp(0, double.infinity);
-      });
-    }
-  }
-
-  void _onVerticalDragEnd(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
-    if (_dragOffset > 80 || velocity > 500) {
-      _animationController.forward().then((_) {
-        widget.onHide();
-      });
-    } else {
-      setState(() {
-        _dragOffset = 0;
-      });
-    }
-  }
+  static const List<List<_ButtonType>> _buttonTypes = [
+    [
+      _ButtonType.function,
+      _ButtonType.function,
+      _ButtonType.function,
+      _ButtonType.operation
+    ],
+    [
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.operation
+    ],
+    [
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.operation
+    ],
+    [
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.operation
+    ],
+    [
+      _ButtonType.hide,
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.equals
+    ],
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -82,202 +75,220 @@ class _CalculatorPadState extends State<CalculatorPad>
     final fontSize = isTablet ? 24.0 : 20.0;
     final equalsFontSize = isTablet ? 28.0 : 24.0;
 
-    return SlideTransition(
-      position: _slideAnimation,
-      child: Transform.translate(
-        offset: Offset(0, _dragOffset),
-        child: GestureDetector(
-          onVerticalDragUpdate: _onVerticalDragUpdate,
-          onVerticalDragEnd: _onVerticalDragEnd,
-          child: Container(
-            padding: EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 12,
-              bottom: bottomPadding > 0 ? bottomPadding : 16,
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+        child: Container(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 12,
+            bottom: bottomPadding > 0 ? bottomPadding : 16,
+          ),
+          decoration: BoxDecoration(
+            color: widget.appTheme.surface.withOpacity(0.92),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withOpacity(0.15),
+                width: 1,
+              ),
             ),
-            decoration: BoxDecoration(
-              color: widget.appTheme.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: 30,
+                offset: const Offset(0, -8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag handle indicator
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: widget.appTheme.primaryLight.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(2),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Drag handle indicator
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: widget.appTheme.primaryLight,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+              ),
+              // Calculator buttons - using RepaintBoundary for performance
+              RepaintBoundary(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(5, (rowIndex) {
+                    return Padding(
+                      padding: EdgeInsets.only(
+                          bottom: rowIndex < 4 ? buttonSpacing : 0),
+                      child: _CalculatorRow(
+                        values: _buttonValues[rowIndex],
+                        types: _buttonTypes[rowIndex],
+                        appTheme: widget.appTheme,
+                        buttonPadding: buttonPadding,
+                        fontSize: fontSize,
+                        equalsFontSize: equalsFontSize,
+                        onInput: widget.onInput,
+                        onHide: widget.onHide,
+                      ),
+                    );
+                  }),
                 ),
-                // Calculator buttons
-                _buildButtonRow(
-                  ['C', '⌫', '%', '÷'],
-                  [
-                    _ButtonType.function,
-                    _ButtonType.function,
-                    _ButtonType.function,
-                    _ButtonType.operation
-                  ],
-                  buttonPadding,
-                  fontSize,
-                  equalsFontSize,
-                ),
-                SizedBox(height: buttonSpacing),
-                _buildButtonRow(
-                  ['7', '8', '9', '×'],
-                  [
-                    _ButtonType.number,
-                    _ButtonType.number,
-                    _ButtonType.number,
-                    _ButtonType.operation
-                  ],
-                  buttonPadding,
-                  fontSize,
-                  equalsFontSize,
-                ),
-                SizedBox(height: buttonSpacing),
-                _buildButtonRow(
-                  ['4', '5', '6', '-'],
-                  [
-                    _ButtonType.number,
-                    _ButtonType.number,
-                    _ButtonType.number,
-                    _ButtonType.operation
-                  ],
-                  buttonPadding,
-                  fontSize,
-                  equalsFontSize,
-                ),
-                SizedBox(height: buttonSpacing),
-                _buildButtonRow(
-                  ['1', '2', '3', '+'],
-                  [
-                    _ButtonType.number,
-                    _ButtonType.number,
-                    _ButtonType.number,
-                    _ButtonType.operation
-                  ],
-                  buttonPadding,
-                  fontSize,
-                  equalsFontSize,
-                ),
-                SizedBox(height: buttonSpacing),
-                _buildButtonRow(
-                  ['hide', '0', '.', '='],
-                  [
-                    _ButtonType.hide,
-                    _ButtonType.number,
-                    _ButtonType.number,
-                    _ButtonType.equals
-                  ],
-                  buttonPadding,
-                  fontSize,
-                  equalsFontSize,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildButtonRow(
-    List<String> values,
-    List<_ButtonType> types,
-    double buttonPadding,
-    double fontSize,
-    double equalsFontSize,
-  ) {
+/// Optimized calculator button row - separated for better rebuild performance
+class _CalculatorRow extends StatelessWidget {
+  final List<String> values;
+  final List<_ButtonType> types;
+  final AppTheme appTheme;
+  final double buttonPadding;
+  final double fontSize;
+  final double equalsFontSize;
+  final Function(String) onInput;
+  final VoidCallback onHide;
+
+  const _CalculatorRow({
+    required this.values,
+    required this.types,
+    required this.appTheme,
+    required this.buttonPadding,
+    required this.fontSize,
+    required this.equalsFontSize,
+    required this.onInput,
+    required this.onHide,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: List.generate(values.length, (index) {
-        return _buildCalcButton(
-          values[index],
-          types[index],
-          buttonPadding,
-          fontSize,
-          equalsFontSize,
+        return _CalculatorButton(
+          value: values[index],
+          type: types[index],
+          appTheme: appTheme,
+          buttonPadding: buttonPadding,
+          fontSize: fontSize,
+          equalsFontSize: equalsFontSize,
+          onInput: onInput,
+          onHide: onHide,
         );
       }),
     );
   }
+}
 
-  Widget _buildCalcButton(
-    String value,
-    _ButtonType type,
-    double buttonPadding,
-    double fontSize,
-    double equalsFontSize,
-  ) {
-    Color backgroundColor;
-    Color textColor = widget.appTheme.textPrimary;
+/// Individual calculator button with haptic feedback
+class _CalculatorButton extends StatelessWidget {
+  final String value;
+  final _ButtonType type;
+  final AppTheme appTheme;
+  final double buttonPadding;
+  final double fontSize;
+  final double equalsFontSize;
+  final Function(String) onInput;
+  final VoidCallback onHide;
 
+  const _CalculatorButton({
+    required this.value,
+    required this.type,
+    required this.appTheme,
+    required this.buttonPadding,
+    required this.fontSize,
+    required this.equalsFontSize,
+    required this.onInput,
+    required this.onHide,
+  });
+
+  Color get _backgroundColor {
     switch (type) {
       case _ButtonType.operation:
-        backgroundColor = widget.appTheme.primary;
+        return appTheme.primary;
       case _ButtonType.function:
-        backgroundColor = widget.appTheme.surfaceLight;
-        textColor = widget.appTheme.textLight;
+        return appTheme.surfaceLight;
       case _ButtonType.equals:
-        backgroundColor = widget.appTheme.accent;
+        return appTheme.accent;
       case _ButtonType.hide:
-        backgroundColor = widget.appTheme.surfaceLight;
+        return appTheme.surfaceLight;
       case _ButtonType.number:
-        backgroundColor = widget.appTheme.background;
+        return appTheme.background.withOpacity(0.8);
     }
+  }
 
-    Widget buttonContent;
+  Color get _textColor {
+    switch (type) {
+      case _ButtonType.function:
+      case _ButtonType.hide:
+        return appTheme.textLight;
+      default:
+        return appTheme.textPrimary;
+    }
+  }
+
+  void _handleTap() {
+    HapticFeedback.lightImpact();
     if (type == _ButtonType.hide) {
-      buttonContent = Icon(
-        Icons.keyboard_hide_rounded,
-        color: widget.appTheme.textLight,
-        size: 22,
-      );
+      onHide();
     } else {
-      buttonContent = Text(
-        value,
-        style: TextStyle(
-          color: textColor,
-          fontSize: type == _ButtonType.equals ? equalsFontSize : fontSize,
-          fontWeight: FontWeight.w600,
-        ),
-      );
+      onInput(value);
     }
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Expanded(
       child: GestureDetector(
-        onTap: () =>
-            type == _ButtonType.hide ? widget.onHide() : widget.onInput(value),
+        onTap: _handleTap,
+        behavior: HitTestBehavior.opaque,
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: EdgeInsets.symmetric(vertical: buttonPadding),
           decoration: BoxDecoration(
-            color: backgroundColor,
+            color: _backgroundColor,
             borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.08),
+              width: 1,
+            ),
             boxShadow: type == _ButtonType.equals
                 ? [
                     BoxShadow(
-                      color: widget.appTheme.accent.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: appTheme.accent.withOpacity(0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ]
                 : null,
           ),
-          child: Center(child: buttonContent),
+          child: Center(child: _buildContent()),
         ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (type == _ButtonType.hide) {
+      return Icon(
+        Icons.keyboard_hide_rounded,
+        color: appTheme.textLight,
+        size: 22,
+      );
+    }
+    return Text(
+      value,
+      style: TextStyle(
+        color: _textColor,
+        fontSize: type == _ButtonType.equals ? equalsFontSize : fontSize,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
