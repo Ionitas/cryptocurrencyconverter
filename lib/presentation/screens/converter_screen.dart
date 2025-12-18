@@ -3,6 +3,7 @@ import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
 import '../../core/di/injection.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/onboarding_service.dart';
 import '../widgets/widgets.dart';
 import '../utils/calculator_logic.dart';
 import '../utils/snackbar_helper.dart';
@@ -19,11 +20,14 @@ class _ConverterScreenState extends State<ConverterScreen>
     with TickerProviderStateMixin, CalculatorLogic {
   final CurrencyRepository _repository = getIt<CurrencyRepository>();
   final AppTheme _appTheme = getIt<AppTheme>();
+  final OnboardingService _onboardingService = OnboardingService();
 
   // Currency data
   List<Currency> _allCurrencies = [];
   Currency? _selectedCurrency;
   List<Currency> _displayCurrencies = [];
+
+  // Default currencies - will be updated with user's country currency
   List<String> _displayCurrencyOrder = [
     'USD',
     'EUR',
@@ -40,6 +44,9 @@ class _ConverterScreenState extends State<ConverterScreen>
     'JPY',
     'USDT'
   };
+
+  // User's country currency
+  String? _userCurrencyCode;
 
   // UI state
   bool _isLoading = true;
@@ -72,6 +79,24 @@ class _ConverterScreenState extends State<ConverterScreen>
     );
     _calculatorController.value = 1.0; // Start visible
 
+    _initializeWithUserPreferences();
+  }
+
+  /// Load user preferences and then load currency data
+  Future<void> _initializeWithUserPreferences() async {
+    // Load user's country from onboarding
+    final onboardingData = await _onboardingService.loadOnboardingData();
+    _userCurrencyCode = onboardingData.currencyCode;
+
+    // Add user's currency to the display list if not already present
+    if (_userCurrencyCode != null &&
+        !_displayCurrencySymbols.contains(_userCurrencyCode)) {
+      _displayCurrencySymbols.add(_userCurrencyCode!);
+      // Add at the beginning for prominence
+      _displayCurrencyOrder.insert(0, _userCurrencyCode!);
+    }
+
+    // Now load currency data
     _loadData();
   }
 

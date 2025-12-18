@@ -5,7 +5,9 @@ import 'dart:io';
 
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
+import 'core/services/onboarding_service.dart';
 import 'presentation/screens/converter_screen.dart';
+import 'presentation/onboarding/onboarding_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,12 +58,33 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late final AppTheme _appTheme;
+  bool _showOnboarding = true;
+  bool _checkingOnboarding = true;
 
   @override
   void initState() {
     super.initState();
     _appTheme = getIt<AppTheme>();
     _appTheme.addListener(_onThemeChanged);
+    _checkOnboardingStatus();
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    final onboardingService = OnboardingService();
+    final completed = await onboardingService.isOnboardingCompleted();
+
+    if (mounted) {
+      setState(() {
+        _showOnboarding = !completed;
+        _checkingOnboarding = false;
+      });
+    }
+  }
+
+  void _onOnboardingComplete() {
+    setState(() {
+      _showOnboarding = false;
+    });
   }
 
   @override
@@ -144,7 +167,22 @@ class _MyAppState extends State<MyApp> {
           }),
         ),
       ),
-      home: const ConverterScreen(),
+      home: _checkingOnboarding
+          ? _buildLoadingScreen()
+          : _showOnboarding
+              ? OnboardingScreen(onComplete: _onOnboardingComplete)
+              : const ConverterScreen(),
+    );
+  }
+
+  Widget _buildLoadingScreen() {
+    return Scaffold(
+      backgroundColor: _appTheme.background,
+      body: Center(
+        child: CircularProgressIndicator(
+          color: _appTheme.primary,
+        ),
+      ),
     );
   }
 }

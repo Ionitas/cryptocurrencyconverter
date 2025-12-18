@@ -1,0 +1,310 @@
+import 'dart:async';
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/di/injection.dart';
+import '../../core/services/onboarding_service.dart';
+import '../../core/services/geolocation_service.dart';
+import 'welcome_page.dart';
+import 'features_page.dart';
+import 'country_selection_page.dart';
+import 'purpose_selection_page.dart';
+import 'paywall_page.dart';
+
+/// Main onboarding screen controller
+/// 5 pages: Welcome -> Features -> Country -> Purpose -> Paywall
+/// Progress bar only shows for last 3 pages (Country, Purpose, Paywall)
+class OnboardingScreen extends StatefulWidget {
+  final VoidCallback onComplete;
+
+  const OnboardingScreen({
+    super.key,
+    required this.onComplete,
+  });
+
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with TickerProviderStateMixin {
+  final AppTheme _appTheme = getIt<AppTheme>();
+  final OnboardingService _onboardingService = OnboardingService();
+  final GeoLocationService _geoService = GeoLocationService();
+
+  late PageController _pageController;
+  late AnimationController _progressController;
+
+  // Total pages: 0=Welcome, 1=Features, 2=Country, 3=Purpose, 4=Paywall
+  static const int _totalPages = 5;
+  static const int _countryPageIndex = 2;
+
+  int _currentPage = 0;
+  CountryInfo? _detectedCountry;
+  CountryInfo? _selectedCountry;
+  UserPurpose? _selectedPurpose;
+  bool _locationDetectionComplete = false;
+
+  // Default country if detection fails
+  static const CountryInfo _defaultCountry = CountryInfo(
+    name: 'United States',
+    code: 'US',
+    flag: '🇺🇸',
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    // Start background location detection immediately
+    _detectLocationInBackground();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _progressController.dispose();
+    super.dispose();
+  }
+
+  /// Detect location in background with timeout
+  Future<void> _detectLocationInBackground() async {
+    try {
+      // Race between actual detection and timeout
+      final result = await Future.any([
+        _geoService.detectCountryFromIP(),
+        Future.delayed(const Duration(seconds: 3), () => null),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _detectedCountry = result ?? _defaultCountry;
+          _locationDetectionComplete = true;
+        });
+      }
+    } catch (e) {
+      // On any error, use default country
+      if (mounted) {
+        setState(() {
+          _detectedCountry = _defaultCountry;
+          _locationDetectionComplete = true;
+        });
+      }
+    }
+  }
+
+  void _goToNextPage() {
+    if (_currentPage < _totalPages - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _goToPreviousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _onCountrySelected(CountryInfo country) {
+    setState(() {
+      _selectedCountry = country;
+    });
+    _goToNextPage();
+  }
+
+  void _onPurposeSelected(UserPurpose purpose) {
+    setState(() {
+      _selectedPurpose = purpose;
+    });
+    _goToNextPage();
+  }
+
+  Future<void> _completeOnboarding() async {
+    // Save onboarding data
+    await _onboardingService.saveOnboardingData(
+      OnboardingData(
+        country: _selectedCountry?.name,
+        countryCode: _selectedCountry?.code,
+        purpose: _selectedPurpose,
+        completed: true,
+      ),
+    );
+
+    widget.onComplete();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLightTheme = _appTheme.currentTheme == ThemeOption.light;
+
+    // Update system UI
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness:
+          isLightTheme ? Brightness.dark : Brightness.light,
+      statusBarBrightness: isLightTheme ? Brightness.light : Brightness.dark,
+    ));
+
+    return Scaffold(
+      backgroundColor: _appTheme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Progress indicator and back button (only show for pages 2-4)
+            if (_currentPage >= _countryPageIndex) _buildHeader(),
+
+            // Page content
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (page) {
+                  setState(() {
+                    _currentPage = page;
+                  });
+                },
+                children: [
+                  // Page 0: Welcome
+                  WelcomePage(
+                    appTheme: _appTheme,
+                    onContinue: _goToNextPage,
+                  ),
+
+                  // Page 1: Features
+                  FeaturesPage(
+                    appTheme: _appTheme,
+                    onContinue: _goToNextPage,
+                  ),
+
+                  // Page 2: Country Selection
+                  CountrySelectionPage(
+                    appTheme: _appTheme,
+                    suggestedCountry:
+                        _locationDetectionComplete ? _detectedCountry : null,
+                    onCountrySelected: _onCountrySelected,
+                  ),
+
+                  // Page 3: Purpose Selection
+                  PurposeSelectionPage(
+                    appTheme: _appTheme,
+                    onPurposeSelected: _onPurposeSelected,
+                  ),
+
+                  // Page 4: Paywall
+                  PaywallPage(
+                    appTheme: _appTheme,
+                    onClose: _completeOnboarding,
+                    onSubscribe: () {
+                      // TODO: Implement subscription
+                      _completeOnboarding();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    // Progress is for pages 2-4 (index 0-2 in the 3-stage progress)
+    final progressIndex = _currentPage - _countryPageIndex;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Row(
+        children: [
+          // Back button
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              _goToPreviousPage();
+            },
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _appTheme.surfaceLight.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: _appTheme.textSecondary,
+                size: 20,
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 16),
+
+          // Progress indicator (3 stages)
+          Expanded(child: _buildProgressIndicator(progressIndex)),
+
+          const SizedBox(width: 16),
+
+          // Page counter
+          Text(
+            '${progressIndex + 1}/3',
+            style: TextStyle(
+              color: _appTheme.textTertiary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressIndicator(int progressIndex) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        height: 8,
+        decoration: BoxDecoration(
+          color: _appTheme.surfaceLight.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          children: List.generate(3, (index) {
+            final isActive = index <= progressIndex;
+
+            return Expanded(
+              child: Container(
+                margin: EdgeInsets.only(left: index > 0 ? 4 : 0),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? _appTheme.primary
+                      : _appTheme.surfaceLight.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: isActive
+                      ? [
+                          BoxShadow(
+                            color: _appTheme.primary.withOpacity(0.5),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+}
