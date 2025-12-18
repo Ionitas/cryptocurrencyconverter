@@ -10,6 +10,15 @@ import 'presentation/screens/converter_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Lock orientation to portrait only on mobile devices
+  final isMobile = Platform.isIOS || Platform.isAndroid;
+  if (isMobile) {
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
+
   // Setup window for desktop platforms
   final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
   if (isDesktop) {

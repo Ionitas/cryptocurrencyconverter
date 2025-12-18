@@ -317,16 +317,21 @@ class _ConverterScreenState extends State<ConverterScreen>
   }
 
   Widget _buildCurrencyList() {
+    final mediaQuery = MediaQuery.of(context);
+    final isTablet = mediaQuery.size.shortestSide >= 600;
+    final horizontalPadding = isTablet ? 24.0 : 16.0;
+    final bottomSpacing = isTablet ? 120.0 : 100.0;
+
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(horizontalPadding),
           sliver: SliverToBoxAdapter(
             child: _buildListHeader(),
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           sliver: SliverReorderableList(
             itemBuilder: (context, index) {
               final currency = _displayCurrencies[index];
@@ -354,7 +359,7 @@ class _ConverterScreenState extends State<ConverterScreen>
           ),
         ),
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           sliver: SliverToBoxAdapter(
             child: Column(
               children: [
@@ -368,7 +373,7 @@ class _ConverterScreenState extends State<ConverterScreen>
                     if (mounted) _loadData(forceRefresh: true);
                   },
                 ),
-                const SizedBox(height: 100),
+                SizedBox(height: bottomSpacing),
               ],
             ),
           ),

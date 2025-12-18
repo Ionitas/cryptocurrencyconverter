@@ -22,12 +22,19 @@ class InputSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final isTablet = mediaQuery.size.shortestSide >= 600;
+    final horizontalPadding = isTablet ? 24.0 : 16.0;
+    final valueFontSize = isTablet ? 52.0 : 42.0;
+    final labelFontSize = isTablet ? 16.0 : 14.0;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         key: ValueKey(selectedCurrency?.symbol ?? 'none'),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.all(16),
+        margin:
+            EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+        padding: EdgeInsets.all(isTablet ? 20 : 16),
         decoration: BoxDecoration(
           color: appTheme.surface,
           borderRadius: BorderRadius.circular(20),
@@ -44,14 +51,17 @@ class InputSection extends StatelessWidget {
               children: [
                 Text(
                   'You convert',
-                  style: TextStyle(color: appTheme.textSecondary, fontSize: 14),
+                  style: TextStyle(
+                    color: appTheme.textSecondary,
+                    fontSize: labelFontSize,
+                  ),
                 ),
                 if (calculatorExpression.isNotEmpty)
                   Text(
                     calculatorExpression,
                     style: TextStyle(
                       color: appTheme.textTertiary,
-                      fontSize: 14,
+                      fontSize: labelFontSize,
                     ),
                   ),
               ],
@@ -67,7 +77,7 @@ class InputSection extends StatelessWidget {
                       displayValue,
                       style: TextStyle(
                         color: appTheme.textPrimary,
-                        fontSize: 42,
+                        fontSize: valueFontSize,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 1,
@@ -75,7 +85,7 @@ class InputSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                _buildCurrencyBadge(),
+                _buildCurrencyBadge(isTablet),
               ],
             ),
           ],
@@ -84,16 +94,19 @@ class InputSection extends StatelessWidget {
     );
   }
 
-  Widget _buildCurrencyBadge() {
+  Widget _buildCurrencyBadge(bool isTablet) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 16 : 12,
+        vertical: isTablet ? 10 : 8,
+      ),
       decoration: BoxDecoration(
         color: appTheme.background,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          CurrencyIcon(currency: selectedCurrency),
+          CurrencyIcon(currency: selectedCurrency, size: isTablet ? 28 : 24),
           const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,7 +115,7 @@ class InputSection extends StatelessWidget {
                 selectedCurrency?.symbol ?? '',
                 style: TextStyle(
                   color: appTheme.textPrimary,
-                  fontSize: 16,
+                  fontSize: isTablet ? 18 : 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -110,7 +123,7 @@ class InputSection extends StatelessWidget {
                 selectedCurrency?.name ?? '',
                 style: TextStyle(
                   color: appTheme.textTertiary,
-                  fontSize: 12,
+                  fontSize: isTablet ? 14 : 12,
                 ),
               ),
             ],
