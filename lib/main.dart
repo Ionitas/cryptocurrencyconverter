@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
 import 'dart:io';
 
 import 'core/di/injection.dart';
+import 'core/theme/app_theme.dart';
 import 'presentation/screens/converter_screen.dart';
 
 void main() async {
@@ -36,22 +38,101 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final AppTheme _appTheme;
+
+  @override
+  void initState() {
+    super.initState();
+    _appTheme = getIt<AppTheme>();
+    _appTheme.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    _appTheme.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Update system UI overlay style based on theme
+    final isLightTheme = _appTheme.currentTheme == ThemeOption.light;
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness:
+          isLightTheme ? Brightness.dark : Brightness.light,
+      statusBarBrightness: isLightTheme ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor: _appTheme.background,
+      systemNavigationBarIconBrightness:
+          isLightTheme ? Brightness.dark : Brightness.light,
+    ));
+
     return MaterialApp(
       title: 'Currency Converter',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF1A1F2E),
-        primaryColor: const Color(0xFF2D3548),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF3B7FFF),
-          surface: Color(0xFF252B3D),
-          background: Color(0xFF1A1F2E),
+        useMaterial3: true,
+        brightness: isLightTheme ? Brightness.light : Brightness.dark,
+        scaffoldBackgroundColor: _appTheme.background,
+        primaryColor: _appTheme.primary,
+        colorScheme: ColorScheme(
+          brightness: isLightTheme ? Brightness.light : Brightness.dark,
+          primary: _appTheme.primary,
+          onPrimary: Colors.white,
+          secondary: _appTheme.accent,
+          onSecondary: Colors.white,
+          error: _appTheme.error,
+          onError: Colors.white,
+          surface: _appTheme.surface,
+          onSurface: _appTheme.textPrimary,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: _appTheme.background,
+          foregroundColor: _appTheme.textPrimary,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+        ),
+        cardTheme: CardThemeData(
+          color: _appTheme.surface,
+          elevation: 0,
+        ),
+        dialogTheme: DialogThemeData(
+          backgroundColor: _appTheme.surface,
+          titleTextStyle: TextStyle(
+            color: _appTheme.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: _appTheme.surface,
+          contentTextStyle: TextStyle(color: _appTheme.textPrimary),
+        ),
+        switchTheme: SwitchThemeData(
+          thumbColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return _appTheme.primary;
+            }
+            return _appTheme.surfaceLight;
+          }),
+          trackColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return _appTheme.primary.withOpacity(0.5);
+            }
+            return _appTheme.surfaceLight.withOpacity(0.5);
+          }),
         ),
       ),
       home: const ConverterScreen(),

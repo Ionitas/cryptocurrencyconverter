@@ -8,18 +8,21 @@ enum ThemeOption { blue, dark, light }
 /// Provides theme colors and manages theme changes
 class AppTheme extends ChangeNotifier {
   ThemeOption _currentTheme = ThemeOption.blue;
+  bool _showNotifications = false;
   final ThemeService _themeService = ThemeService();
 
   AppTheme() {
-    _loadTheme();
+    _loadSettings();
   }
 
   ThemeOption get currentTheme => _currentTheme;
+  bool get showNotifications => _showNotifications;
 
-  /// Load saved theme from storage
-  Future<void> _loadTheme() async {
+  /// Load saved settings from storage
+  Future<void> _loadSettings() async {
     final themeName = await _themeService.loadTheme();
     _currentTheme = _themeNameToEnum(themeName);
+    _showNotifications = await _themeService.loadShowNotifications();
     notifyListeners();
   }
 
@@ -27,6 +30,13 @@ class AppTheme extends ChangeNotifier {
   Future<void> setTheme(ThemeOption theme) async {
     _currentTheme = theme;
     await _themeService.saveTheme(_enumToThemeName(theme));
+    notifyListeners();
+  }
+
+  /// Toggle show notifications and save to storage
+  Future<void> setShowNotifications(bool enabled) async {
+    _showNotifications = enabled;
+    await _themeService.saveShowNotifications(enabled);
     notifyListeners();
   }
 
@@ -38,6 +48,7 @@ class AppTheme extends ChangeNotifier {
   Color get primaryLight => _getColor('primaryLight');
   Color get accent => _getColor('accent');
   Color get success => _getColor('success');
+  Color get warning => _getColor('warning');
   Color get error => _getColor('error');
   Color get textPrimary => _getColor('textPrimary');
   Color get textSecondary => _getColor('textSecondary');
@@ -74,6 +85,8 @@ class AppTheme extends ChangeNotifier {
         return AppColorsBlue.accent;
       case 'success':
         return AppColorsBlue.success;
+      case 'warning':
+        return AppColorsBlue.warning;
       case 'error':
         return AppColorsBlue.error;
       case 'textPrimary':
@@ -109,6 +122,8 @@ class AppTheme extends ChangeNotifier {
         return AppColorsDark.accent;
       case 'success':
         return AppColorsDark.success;
+      case 'warning':
+        return AppColorsDark.warning;
       case 'error':
         return AppColorsDark.error;
       case 'textPrimary':
@@ -144,6 +159,8 @@ class AppTheme extends ChangeNotifier {
         return AppColorsLight.accent;
       case 'success':
         return AppColorsLight.success;
+      case 'warning':
+        return AppColorsLight.warning;
       case 'error':
         return AppColorsLight.error;
       case 'textPrimary':

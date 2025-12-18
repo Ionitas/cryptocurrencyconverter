@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
 import '../../core/di/injection.dart';
-import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../widgets/widgets.dart';
 import '../utils/calculator_logic.dart';
+import '../utils/snackbar_helper.dart';
 
 /// Main converter screen for currency conversion
 class ConverterScreen extends StatefulWidget {
@@ -95,16 +95,13 @@ class _ConverterScreenState extends State<ConverterScreen>
   }
 
   void _showDataSnackBar(bool fromCache) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          fromCache
-              ? '✓ Loaded from cache (${_allCurrencies.length} currencies)'
-              : '✓ Fresh data (${_allCurrencies.length} currencies)',
-        ),
-        backgroundColor: fromCache ? Colors.orange : Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
+    SnackBarHelper.show(
+      context: context,
+      message: fromCache
+          ? '✓ Loaded from cache (${_allCurrencies.length} currencies)'
+          : '✓ Fresh data (${_allCurrencies.length} currencies)',
+      appTheme: _appTheme,
+      type: fromCache ? SnackBarType.warning : SnackBarType.success,
     );
   }
 
@@ -136,12 +133,12 @@ class _ConverterScreenState extends State<ConverterScreen>
       _updateDisplayCurrencies();
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${currency.symbol} added'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 1),
-      ),
+    SnackBarHelper.show(
+      context: context,
+      message: '${currency.symbol} added',
+      appTheme: _appTheme,
+      type: SnackBarType.success,
+      duration: const Duration(seconds: 1),
     );
   }
 
@@ -183,12 +180,12 @@ class _ConverterScreenState extends State<ConverterScreen>
       _updateDisplayCurrencies();
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${currency.symbol} is now the main currency'),
-        backgroundColor: AppColors.primary,
-        duration: const Duration(seconds: 1),
-      ),
+    SnackBarHelper.show(
+      context: context,
+      message: '${currency.symbol} is now the main currency',
+      appTheme: _appTheme,
+      type: SnackBarType.info,
+      duration: const Duration(seconds: 1),
     );
   }
 

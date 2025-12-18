@@ -14,6 +14,7 @@ abstract class AppColors {
   // Accent colors
   static const Color accent = Color(0xFFFF9500);
   static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFFF9500);
   static const Color error = Color(0xFFEF4444);
 
   // Text colors
@@ -41,6 +42,7 @@ abstract class AppColorsBlue {
   // Accent colors
   static const Color accent = Color(0xFFFF9500);
   static const Color success = Color(0xFF10B981);
+  static const Color warning = Color(0xFFFF9500);
   static const Color error = Color(0xFFEF4444);
 
   // Text colors
@@ -68,6 +70,7 @@ abstract class AppColorsDark {
   // Accent colors
   static const Color accent = Color(0xFFFF9F0A);
   static const Color success = Color(0xFF32D74B);
+  static const Color warning = Color(0xFFFF9F0A);
   static const Color error = Color(0xFFFF453A);
 
   // Text colors
@@ -95,6 +98,7 @@ abstract class AppColorsLight {
   // Accent colors
   static const Color accent = Color(0xFFFF9500);
   static const Color success = Color(0xFF34C759);
+  static const Color warning = Color(0xFFFF9500);
   static const Color error = Color(0xFFFF3B30);
 
   // Text colors
