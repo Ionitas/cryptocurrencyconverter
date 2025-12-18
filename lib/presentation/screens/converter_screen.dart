@@ -263,7 +263,7 @@ class _ConverterScreenState extends State<ConverterScreen>
                                   _buildAddCurrencyCard(),
                                   const SizedBox(height: 8),
                                   _buildPremiumCard(),
-                                  const SizedBox(height: 80),
+                                  const SizedBox(height: 100),
                                 ],
                               ),
                             ),
@@ -271,24 +271,13 @@ class _ConverterScreenState extends State<ConverterScreen>
                         ],
                       ),
                     ),
-                    if (_isCalculatorVisible) _buildCalculatorPad(),
+                    // Calculator at bottom
+                    if (_isCalculatorVisible)
+                      _buildCalculatorPad()
+                    else
+                      _buildBottomBar(),
                   ],
                 ),
-                // Floating calculator button
-                if (!_isCalculatorVisible)
-                  Positioned(
-                    left: 16,
-                    bottom: 16,
-                    child: FloatingActionButton(
-                      onPressed: () {
-                        setState(() {
-                          _isCalculatorVisible = true;
-                        });
-                      },
-                      backgroundColor: const Color(0xFF3B7FFF),
-                      child: const Icon(Icons.calculate, color: Colors.white),
-                    ),
-                  ),
               ],
             ),
     );
@@ -621,98 +610,173 @@ class _ConverterScreenState extends State<ConverterScreen>
   }
 
   void _showAddCurrencyPicker() {
-    final availableCurrencies = _allCurrencies
-        .where((c) =>
-            !_displayCurrencySymbols.contains(c.symbol) &&
-            c.id != _selectedCurrency?.id)
-        .toList();
+    String searchQuery = '';
 
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF252B3D),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       isScrollControlled: true,
-      builder: (BuildContext modalContext) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (BuildContext modalContext) => StatefulBuilder(
+        builder: (context, setModalState) {
+          final availableCurrencies = _allCurrencies
+              .where((c) =>
+                  !_displayCurrencySymbols.contains(c.symbol) &&
+                  c.id != _selectedCurrency?.id)
+              .where((c) {
+            if (searchQuery.isEmpty) return true;
+            final query = searchQuery.toLowerCase();
+            return c.name.toLowerCase().contains(query) ||
+                c.symbol.toLowerCase().contains(query);
+          }).toList();
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.5,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (context, scrollController) => Column(
                 children: [
-                  const Text(
-                    'Add Currency',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  // Drag handle
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 12, bottom: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4B5563),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  Text(
-                    '${availableCurrencies.length} available',
-                    style: const TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 12,
+                  // Header
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Add Currency',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${availableCurrencies.length} available',
+                          style: const TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+                  // Search bar
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1F2E),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: TextField(
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 16),
+                        decoration: const InputDecoration(
+                          hintText: 'Search currencies...',
+                          hintStyle: TextStyle(color: Color(0xFF6B7280)),
+                          border: InputBorder.none,
+                          icon: Icon(Icons.search,
+                              color: Color(0xFF6B7280), size: 20),
+                          contentPadding: EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onChanged: (value) {
+                          setModalState(() {
+                            searchQuery = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  // Currency list
+                  Expanded(
+                    child: availableCurrencies.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(
+                                searchQuery.isEmpty
+                                    ? 'All currencies added'
+                                    : 'No currencies found for "$searchQuery"',
+                                style: const TextStyle(
+                                  color: Color(0xFF6B7280),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: scrollController,
+                            itemCount: availableCurrencies.length,
+                            itemBuilder: (context, index) {
+                              final currency = availableCurrencies[index];
+                              return ListTile(
+                                leading: _buildCurrencyIcon(currency),
+                                title: Text(
+                                  currency.name,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                subtitle: Text(
+                                  currency.symbol,
+                                  style:
+                                      const TextStyle(color: Color(0xFF6B7280)),
+                                ),
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF3B7FFF),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    'Add',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                onTap: () {
+                                  _addCurrency(currency);
+                                  setModalState(() {}); // Refresh list
+                                  ScaffoldMessenger.of(this.context)
+                                      .showSnackBar(
+                                    SnackBar(
+                                      content: Text('${currency.symbol} added'),
+                                      backgroundColor: Colors.green,
+                                      duration: const Duration(seconds: 1),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                controller: scrollController,
-                itemCount: availableCurrencies.length,
-                itemBuilder: (context, index) {
-                  final currency = availableCurrencies[index];
-                  return ListTile(
-                    leading: _buildCurrencyIcon(currency),
-                    title: Text(
-                      currency.name,
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    subtitle: Text(
-                      currency.symbol,
-                      style: const TextStyle(color: Color(0xFF6B7280)),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3B7FFF),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Add',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    onTap: () {
-                      _addCurrency(currency);
-                      Navigator.pop(modalContext);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${currency.symbol} added'),
-                          backgroundColor: Colors.green,
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -943,6 +1007,74 @@ class _ConverterScreenState extends State<ConverterScreen>
     setState(() {
       _isCalculatorVisible = false;
     });
+  }
+
+  Widget _buildBottomBar() {
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF252B3D),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: _showAddCurrencyPicker,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1F2E),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: Color(0xFF3B7FFF), size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Add Currency',
+                        style: TextStyle(
+                          color: Color(0xFF3B7FFF),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _isCalculatorVisible = true;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B7FFF),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child:
+                    const Icon(Icons.calculate, color: Colors.white, size: 22),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _handleCalculatorInput(String value) {
