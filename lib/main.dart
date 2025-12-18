@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-import 'ui/screens/calculator_screen.dart';
-import 'providers/app_providers.dart';
+
+import 'core/di/injection.dart';
+import 'presentation/screens/converter_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Setup window for desktop platforms
   final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
-
   if (isDesktop) {
-    final appDir = await getApplicationSupportDirectory();
-    Hive.init(appDir.path);
-
     await windowManager.ensureInitialized();
 
     const windowOptions = WindowOptions(
@@ -31,59 +26,18 @@ void main() async {
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
-      await windowManager.setPreventClose(true); // Prevent immediate close, handle in onWindowClose
+      await windowManager.setPreventClose(true);
     });
-  } else {
-    await Hive.initFlutter();
   }
 
-  runApp(const ProviderScope(child: MyApp()));
+  // Setup dependency injection
+  await setupDependencies();
+
+  runApp(const MyApp());
 }
 
-class MyApp extends ConsumerStatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  ConsumerState<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver, WindowListener {
-  final bool _isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    if (_isDesktop) {
-      windowManager.addListener(this);
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    if (_isDesktop) {
-      windowManager.removeListener(this);
-    }
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-
-    // Save state when app is paused, detached, or hidden (mobile)
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached || state == AppLifecycleState.hidden) {
-      ref.read(currencyRowsProvider.notifier).saveState();
-    }
-  }
-
-  @override
-  void onWindowClose() async {
-    // Save state before window closes (desktop)
-    await ref.read(currencyRowsProvider.notifier).saveState();
-    await windowManager.destroy();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,15 +45,16 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver, Wind
       title: 'Currency Converter',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.light),
-        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF1A1F2E),
+        primaryColor: const Color(0xFF2D3548),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF3B7FFF),
+          surface: Color(0xFF252B3D),
+          background: Color(0xFF1A1F2E),
+        ),
       ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue, brightness: Brightness.dark),
-        useMaterial3: true,
-      ),
-      themeMode: ThemeMode.system,
-      home: const CalculatorScreen(),
+      home: const ConverterScreen(),
     );
   }
 }

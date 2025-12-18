@@ -11,27 +11,23 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # UI
   cupertino_icons: ^1.0.8
-  font_awesome_flutter: 10.12.0
-  math_expressions: ^3.1.0
-  intl: ^0.20.2
+  
+  # Network
   http: 1.6.0
-  flutter_riverpod: 3.0.3
-
-  flutter_dotenv: ^6.0.0
-  url_launcher: ^6.3.2
-  rflutter_alert: ^2.0.7
-  package_info_plus: ^9.0.0
-
-
+  
+  # Local Storage
   shared_preferences: ^2.5.3
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-
-
-  path_provider: ^2.1.5
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  
+  # Dependency Injection
+  get_it: ^7.6.0
+  
+  # Desktop Support
   window_manager: ^0.4.3
-
 
 dev_dependencies:
   flutter_test:
@@ -42,7 +38,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - .env
-    - assets/images/
