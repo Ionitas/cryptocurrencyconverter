@@ -295,81 +295,104 @@ class _ConverterScreenState extends State<ConverterScreen>
   }
 
   Widget _buildInputSection() {
-    return Container(
-      key: ValueKey(_selectedCurrency?.symbol ?? 'none'),
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF252B3D),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF3B7FFF),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'You convert',
-            style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+    return GestureDetector(
+      onTap: () {
+        if (!_isCalculatorVisible) {
+          setState(() {
+            _isCalculatorVisible = true;
+          });
+        }
+      },
+      child: Container(
+        key: ValueKey(_selectedCurrency?.symbol ?? 'none'),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF252B3D),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFF3B7FFF),
+            width: 2,
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _displayValue,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'You convert',
+                  style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14),
+                ),
+                // Show expression (grey, smaller) when there's an operation
+                if (_calculatorExpression.isNotEmpty)
+                  Text(
+                    _calculatorExpression,
                     style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6B7280),
+                      fontSize: 14,
                     ),
-                    maxLines: 1,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _displayValue,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1F2E),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    _buildCurrencyIcon(_selectedCurrency),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selectedCurrency?.symbol ?? '',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                const SizedBox(width: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1F2E),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildCurrencyIcon(_selectedCurrency),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _selectedCurrency?.symbol ?? '',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        Text(
-                          _selectedCurrency?.name ?? '',
-                          style: const TextStyle(
-                            color: Color(0xFF6B7280),
-                            fontSize: 12,
+                          Text(
+                            _selectedCurrency?.name ?? '',
+                            style: const TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -442,6 +465,13 @@ class _ConverterScreenState extends State<ConverterScreen>
       child: GestureDetector(
         onTap: () {
           setState(() {
+            // Calculate the converted amount (what will become the new main amount)
+            final convertedAmount = _repository.convert(
+              _currentAmount,
+              _selectedCurrency!,
+              currency,
+            );
+
             // Add current main currency to display list
             _displayCurrencySymbols.add(_selectedCurrency!.symbol);
             if (!_displayCurrencyOrder.contains(_selectedCurrency!.symbol)) {
@@ -452,6 +482,14 @@ class _ConverterScreenState extends State<ConverterScreen>
             _displayCurrencyOrder.remove(currency.symbol);
             // Set the tapped currency as main
             _selectedCurrency = currency;
+            // Swap the amount - the converted value becomes the new main amount
+            _currentAmount = convertedAmount;
+            _displayValue = _formatCalculatorResult(convertedAmount);
+            // Reset calculator state
+            _calculatorExpression = '';
+            _previousValue = null;
+            _operation = null;
+            _shouldResetDisplay = true;
             _updateDisplayCurrencies();
           });
           ScaffoldMessenger.of(context).showSnackBar(
@@ -761,72 +799,41 @@ class _ConverterScreenState extends State<ConverterScreen>
   Widget _buildCalculatorPad() {
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Color(0xFF252B3D),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFF252B3D),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header with expression and hide button
-            Row(
-              children: [
-                // Expression display
-                Expanded(
-                  child: _calculatorExpression.isNotEmpty
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1A1F2E),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _calculatorExpression,
-                            style: const TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        )
-                      : const SizedBox(),
-                ),
-                const SizedBox(width: 8),
-                // Hide button (small icon button)
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isCalculatorVisible = false;
-                    });
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B7FFF).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.keyboard_hide,
-                      color: Color(0xFF3B7FFF),
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ],
+            // Drag handle indicator
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4B5563),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 8),
             // Calculator buttons
             Row(
               children: [
                 _buildCalcButton('C', isFunction: true),
-                _buildCalcButton('AC', isFunction: true),
                 _buildCalcButton('⌫', isFunction: true),
+                _buildCalcButton('%', isFunction: true),
                 _buildCalcButton('÷', isOperation: true),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(
               children: [
                 _buildCalcButton('7'),
@@ -835,7 +842,7 @@ class _ConverterScreenState extends State<ConverterScreen>
                 _buildCalcButton('×', isOperation: true),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(
               children: [
                 _buildCalcButton('4'),
@@ -844,7 +851,7 @@ class _ConverterScreenState extends State<ConverterScreen>
                 _buildCalcButton('-', isOperation: true),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(
               children: [
                 _buildCalcButton('1'),
@@ -853,9 +860,10 @@ class _ConverterScreenState extends State<ConverterScreen>
                 _buildCalcButton('+', isOperation: true),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(
               children: [
+                _buildCalcButton('hide', isHide: true),
                 _buildCalcButton('0'),
                 _buildCalcButton('.'),
                 _buildCalcButton('=', isEquals: true),
@@ -870,7 +878,8 @@ class _ConverterScreenState extends State<ConverterScreen>
   Widget _buildCalcButton(String value,
       {bool isOperation = false,
       bool isFunction = false,
-      bool isEquals = false}) {
+      bool isEquals = false,
+      bool isHide = false}) {
     Color backgroundColor = const Color(0xFF1A1F2E);
     Color textColor = Colors.white;
     int flex = 1;
@@ -879,52 +888,74 @@ class _ConverterScreenState extends State<ConverterScreen>
       backgroundColor = const Color(0xFF3B7FFF);
     } else if (isFunction) {
       backgroundColor = const Color(0xFF374151);
+      textColor = const Color(0xFFE5E7EB);
     } else if (isEquals) {
-      backgroundColor = const Color(0xFF10B981);
-      flex = 2;
+      backgroundColor = const Color(0xFFFF9500);
+    } else if (isHide) {
+      backgroundColor = const Color(0xFF374151);
+    }
+
+    Widget buttonContent;
+    if (isHide) {
+      buttonContent = const Icon(
+        Icons.keyboard_hide_rounded,
+        color: Color(0xFFE5E7EB),
+        size: 22,
+      );
+    } else {
+      buttonContent = Text(
+        value,
+        style: TextStyle(
+          color: textColor,
+          fontSize: isEquals ? 24 : 20,
+          fontWeight: FontWeight.w600,
+        ),
+      );
     }
 
     return Expanded(
       flex: flex,
       child: GestureDetector(
-        onTap: () => _handleCalculatorInput(value),
+        onTap: () => isHide ? _hideCalculator() : _handleCalculatorInput(value),
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
             color: backgroundColor,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: isEquals
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFF9500).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-          child: Center(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+          child: Center(child: buttonContent),
         ),
       ),
     );
   }
 
+  void _hideCalculator() {
+    setState(() {
+      _isCalculatorVisible = false;
+    });
+  }
+
   void _handleCalculatorInput(String value) {
     setState(() {
       switch (value) {
-        case 'AC':
+        case 'C':
+          // Clear all - now C acts as full clear
           _displayValue = '0';
           _calculatorExpression = '';
           _previousValue = null;
           _operation = null;
           _currentAmount = 0;
           _shouldResetDisplay = false;
-          break;
-
-        case 'C':
-          _displayValue = '0';
-          _currentAmount = 0;
           break;
 
         case '⌫':
@@ -938,11 +969,37 @@ class _ConverterScreenState extends State<ConverterScreen>
           _currentAmount = double.tryParse(_displayValue) ?? 0;
           break;
 
+        case '%':
+          // Calculate percentage
+          final currentValue = double.tryParse(_displayValue) ?? 0;
+          if (_previousValue != null && _operation != null) {
+            // Calculate percentage of the previous value
+            final percentValue = _previousValue! * (currentValue / 100);
+            _displayValue = _formatCalculatorResult(percentValue);
+          } else {
+            // Just divide by 100
+            _displayValue = _formatCalculatorResult(currentValue / 100);
+          }
+          _currentAmount = double.tryParse(_displayValue) ?? 0;
+          break;
+
         case '+':
         case '-':
         case '×':
         case '÷':
-          _previousValue = double.tryParse(_displayValue) ?? 0;
+          // Support chained operations - calculate previous if exists
+          if (_previousValue != null &&
+              _operation != null &&
+              !_shouldResetDisplay) {
+            final currentValue = double.tryParse(_displayValue) ?? 0;
+            double result =
+                _calculateResult(_previousValue!, currentValue, _operation!);
+            _displayValue = _formatCalculatorResult(result);
+            _previousValue = result;
+            _currentAmount = result;
+          } else {
+            _previousValue = double.tryParse(_displayValue) ?? 0;
+          }
           _operation = value;
           _calculatorExpression = '$_displayValue $value';
           _shouldResetDisplay = true;
@@ -951,29 +1008,15 @@ class _ConverterScreenState extends State<ConverterScreen>
         case '=':
           if (_previousValue != null && _operation != null) {
             final currentValue = double.tryParse(_displayValue) ?? 0;
-            double result = 0;
+            double result =
+                _calculateResult(_previousValue!, currentValue, _operation!);
 
-            switch (_operation) {
-              case '+':
-                result = _previousValue! + currentValue;
-                break;
-              case '-':
-                result = _previousValue! - currentValue;
-                break;
-              case '×':
-                result = _previousValue! * currentValue;
-                break;
-              case '÷':
-                if (currentValue != 0) {
-                  result = _previousValue! / currentValue;
-                } else {
-                  _displayValue = 'Error';
-                  _previousValue = null;
-                  _operation = null;
-                  _calculatorExpression = '';
-                  return;
-                }
-                break;
+            if (result.isNaN || result.isInfinite) {
+              _displayValue = 'Error';
+              _previousValue = null;
+              _operation = null;
+              _calculatorExpression = '';
+              return;
             }
 
             _displayValue = _formatCalculatorResult(result);
@@ -1003,9 +1046,30 @@ class _ConverterScreenState extends State<ConverterScreen>
             _displayValue += value;
           }
           _currentAmount = double.tryParse(_displayValue) ?? 0;
+          // Update expression when entering numbers after operation
+          if (_operation != null && _previousValue != null) {
+            _calculatorExpression =
+                '${_formatCalculatorResult(_previousValue!)} $_operation $_displayValue';
+          }
           break;
       }
     });
+  }
+
+  double _calculateResult(double a, double b, String op) {
+    switch (op) {
+      case '+':
+        return a + b;
+      case '-':
+        return a - b;
+      case '×':
+        return a * b;
+      case '÷':
+        if (b != 0) return a / b;
+        return double.nan;
+      default:
+        return b;
+    }
   }
 
   String _formatCalculatorResult(double value) {
