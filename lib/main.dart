@@ -8,7 +8,7 @@ import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/onboarding_service.dart';
 // import 'subscription/core/revenuecat_purchases_service.dart';
-import 'presentation/screens/converter_screen.dart';
+import 'presentation/screens/dashboard_screen.dart';
 import 'presentation/screens/no_internet_screen.dart';
 import 'presentation/onboarding/onboarding_screen.dart';
 
@@ -221,7 +221,7 @@ class _MyAppState extends State<MyApp> {
                 )
               : _showOnboarding
                   ? OnboardingScreen(onComplete: _onOnboardingComplete)
-                  : const ConverterScreen(),
+                  : const DashboardScreen(),
     );
   }
 
