@@ -1,11 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:window_manager/window_manager.dart';
-import 'dart:io';
 
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/onboarding_service.dart';
+// import 'subscription/core/revenuecat_purchases_service.dart';
 import 'presentation/screens/converter_screen.dart';
 import 'presentation/screens/no_internet_screen.dart';
 import 'presentation/onboarding/onboarding_screen.dart';
@@ -46,6 +48,16 @@ void main() async {
 
   // Setup dependency injection
   await setupDependencies();
+
+  // Initialize RevenueCat SDK (only on mobile platforms)
+  // if (isMobile) {
+  //   try {
+  //     await RevenueCatPurchasesService.init();
+  //   } catch (e) {
+  //     // Log error but don't prevent app from launching
+  //     debugPrint('Failed to initialize RevenueCat: $e');
+  //   }
+  // }
 
   runApp(const MyApp());
 }

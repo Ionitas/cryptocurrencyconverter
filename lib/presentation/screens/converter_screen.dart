@@ -4,6 +4,8 @@ import '../../domain/repositories/currency_repository.dart';
 import '../../core/di/injection.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/onboarding_service.dart';
+// import '../../subscription/core/subscription_service.dart';
+// import '../../subscription/view/layout_widgets/view/simpleOffer_paywall.dart';
 import '../widgets/widgets.dart';
 import '../utils/calculator_logic.dart';
 import '../utils/snackbar_helper.dart';
@@ -333,6 +335,74 @@ class _ConverterScreenState extends State<ConverterScreen>
     );
   }
 
+  Future<void> _showPaywall() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(
+          color: _appTheme.primary,
+        ),
+      ),
+    );
+
+    try {
+      // Initialize subscription service if not already done
+      // final subscriptionService = getIt<SubscriptionService>();
+      // await subscriptionService.init();
+
+      // Close loading indicator
+      if (mounted) Navigator.of(context).pop();
+
+      // Check if packages are available
+      // bool hasPackages = subscriptionService.state.weeklyPackage != null ||
+      //     subscriptionService.state.monthlyPackage != null ||
+      //     subscriptionService.state.annualPackage != null;
+      // hasPackages = false;
+      // if (!hasPackages) {
+      //   debugPrint(
+      //       'Warning: Some subscription packages are not available. This may be due to App Store Connect configuration.');
+      //   // Show warning but continue to paywall for development/testing
+      //   if (mounted) {
+      //     SnackBarHelper.show(
+      //       context: context,
+      //       message:
+      //           'Note: Some products may not be available due to App Store Connect setup.',
+      //       appTheme: _appTheme,
+      //       type: SnackBarType.warning,
+      //     );
+      //   }
+      // }
+
+      // Show paywall (even if packages aren't fully configured, for testing)
+      // if (mounted) {
+      //   showDialog(
+      //     context: context,
+      //     barrierDismissible: false,
+      //     builder: (context) => const Dialog(
+      //       backgroundColor: Colors.transparent,
+      //       insetPadding: EdgeInsets.zero,
+      //       child: SimplePaywallWidget(),
+      //     ),
+      //   );
+      // }
+    } catch (e) {
+      // Close loading indicator
+      if (mounted) Navigator.of(context).pop();
+
+      // Show error message
+      if (mounted) {
+        SnackBarHelper.show(
+          context: context,
+          message: 'Failed to load subscription options: ${e.toString()}',
+          appTheme: _appTheme,
+          type: SnackBarType.error,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -548,10 +618,7 @@ class _ConverterScreenState extends State<ConverterScreen>
                 const SizedBox(height: 8),
                 PremiumCard(
                   appTheme: _appTheme,
-                  onUpgrade: () async {
-                    await _repository.setPremium(true);
-                    if (mounted) _loadData(forceRefresh: true);
-                  },
+                  onUpgrade: _showPaywall,
                 ),
                 SizedBox(height: bottomSpacing),
               ],

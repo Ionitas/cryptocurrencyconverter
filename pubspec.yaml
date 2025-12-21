@@ -14,6 +14,9 @@ dependencies:
   
   # UI
   cupertino_icons: ^1.0.8
+  auto_size_text_plus: ^3.0.2
+  flutter_carousel_widget: ^3.0.0
+  wolt_modal_sheet: ^0.11.0
   
   # Network
   http: 1.6.0
@@ -24,10 +27,18 @@ dependencies:
   path: ^1.8.3
   
   # Dependency Injection
-  get_it: ^7.6.0
+  get_it: ^9.2.0
+  
+  # In-App Purchases
+  purchases_flutter: ^9.10.1
+  purchases_ui_flutter: ^9.10.1
+  
+  # Utilities
+  url_launcher: ^6.2.6
+  intl: ^0.20.2
   
   # Desktop Support
-  window_manager: ^0.4.3
+  window_manager: ^0.5.1
 
 dev_dependencies:
   flutter_test:
@@ -38,3 +49,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
+  assets:
+    - assets/images/
