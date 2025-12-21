@@ -4,6 +4,7 @@ import '../../domain/repositories/currency_repository.dart';
 import '../../core/di/injection.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/onboarding_service.dart';
+import '../../core/services/portfolio_storage_service.dart';
 // import '../../subscription/core/subscription_service.dart';
 // import '../../subscription/view/layout_widgets/view/simpleOffer_paywall.dart';
 import '../widgets/widgets.dart';
@@ -23,6 +24,7 @@ class _ConverterScreenState extends State<ConverterScreen>
   final CurrencyRepository _repository = getIt<CurrencyRepository>();
   final AppTheme _appTheme = getIt<AppTheme>();
   final OnboardingService _onboardingService = OnboardingService();
+  final PortfolioStorageService _storageService = PortfolioStorageService();
 
   // Currency data
   List<Currency> _allCurrencies = [];
@@ -124,10 +126,31 @@ class _ConverterScreenState extends State<ConverterScreen>
 
     if (result.currencies.isNotEmpty) {
       _allCurrencies = result.currencies;
-      _selectedCurrency = _allCurrencies.firstWhere(
-        (c) => c.symbol == 'BTC',
-        orElse: () => _allCurrencies.first,
-      );
+
+      // Try to load saved currency, otherwise default to BTC
+      final savedCurrencySymbol = await _storageService.loadConverterCurrency();
+      if (savedCurrencySymbol != null) {
+        _selectedCurrency = _allCurrencies.firstWhere(
+          (c) => c.symbol == savedCurrencySymbol,
+          orElse: () => _allCurrencies.firstWhere(
+            (c) => c.symbol == 'BTC',
+            orElse: () => _allCurrencies.first,
+          ),
+        );
+      } else {
+        _selectedCurrency = _allCurrencies.firstWhere(
+          (c) => c.symbol == 'BTC',
+          orElse: () => _allCurrencies.first,
+        );
+      }
+
+      // Load saved amount
+      final savedAmount = await _storageService.loadConverterAmount();
+      if (savedAmount != null) {
+        currentAmount = savedAmount;
+        displayValue = formatCalculatorResult(savedAmount);
+      }
+
       _updateDisplayCurrencies();
     }
 
@@ -226,6 +249,9 @@ class _ConverterScreenState extends State<ConverterScreen>
       _updateDisplayCurrencies();
     });
 
+    // Save the new currency and amount
+    _saveConverterState();
+
     SnackBarHelper.show(
       context: context,
       message: '${currency.symbol} is now the main currency',
@@ -235,10 +261,22 @@ class _ConverterScreenState extends State<ConverterScreen>
     );
   }
 
+  /// Save current converter state to storage
+  void _saveConverterState() {
+    if (_selectedCurrency != null) {
+      _storageService.saveConverterState(
+        amount: currentAmount,
+        currencySymbol: _selectedCurrency!.symbol,
+      );
+    }
+  }
+
   void _onCalculatorInput(String value) {
     setState(() {
       handleCalculatorInput(value);
     });
+    // Save after calculator input
+    _saveConverterState();
   }
 
   void _showCalculator() {

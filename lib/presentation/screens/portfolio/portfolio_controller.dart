@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/services/portfolio_storage_service.dart';
 import '../../../domain/models/currency.dart';
 import '../../../domain/repositories/currency_repository.dart';
 
@@ -25,11 +26,19 @@ class PortfolioEntry {
       amount: amount ?? this.amount,
     );
   }
+
+  /// Convert to JSON for storage
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'currencySymbol': currency.symbol,
+        'amount': amount,
+      };
 }
 
 /// Business logic controller for the portfolio screen
 class PortfolioController extends ChangeNotifier {
   final CurrencyRepository repository;
+  final PortfolioStorageService _storageService = PortfolioStorageService();
 
   PortfolioController({required this.repository});
 
@@ -66,20 +75,69 @@ class PortfolioController extends ChangeNotifier {
 
     if (result.currencies.isNotEmpty) {
       _allCurrencies = result.currencies;
-      // Default to USD as base currency
-      _baseCurrency = _allCurrencies.firstWhere(
-        (c) => c.symbol == 'USD',
-        orElse: () => _allCurrencies.first,
-      );
+
+      // Load saved base currency or default to USD
+      final savedBaseCurrency =
+          await _storageService.loadPortfolioBaseCurrency();
+      if (savedBaseCurrency != null) {
+        _baseCurrency = _allCurrencies.firstWhere(
+          (c) => c.symbol == savedBaseCurrency,
+          orElse: () => _allCurrencies.firstWhere(
+            (c) => c.symbol == 'USD',
+            orElse: () => _allCurrencies.first,
+          ),
+        );
+      } else {
+        _baseCurrency = _allCurrencies.firstWhere(
+          (c) => c.symbol == 'USD',
+          orElse: () => _allCurrencies.first,
+        );
+      }
+
+      // Load saved portfolio entries
+      await _loadSavedEntries();
     }
 
     _isLoading = false;
     notifyListeners();
   }
 
+  /// Load saved portfolio entries from storage
+  Future<void> _loadSavedEntries() async {
+    final savedEntries = await _storageService.loadPortfolioEntries();
+    _entries = [];
+
+    for (final entryJson in savedEntries) {
+      final symbol = entryJson['currencySymbol'] as String?;
+      final amount = (entryJson['amount'] as num?)?.toDouble();
+      final id = entryJson['id'] as String?;
+
+      if (symbol != null && amount != null && id != null) {
+        final currency = _allCurrencies.firstWhere(
+          (c) => c.symbol == symbol,
+          orElse: () => _allCurrencies.first,
+        );
+        if (currency.symbol == symbol) {
+          _entries.add(PortfolioEntry(
+            id: id,
+            currency: currency,
+            amount: amount,
+          ));
+        }
+      }
+    }
+  }
+
+  /// Save all entries to storage
+  Future<void> _saveEntries() async {
+    final entriesJson = _entries.map((e) => e.toJson()).toList();
+    await _storageService.savePortfolioEntries(entriesJson);
+  }
+
   /// Change the base currency for conversion
   void setBaseCurrency(Currency currency) {
     _baseCurrency = currency;
+    _storageService.savePortfolioBaseCurrency(currency.symbol);
     notifyListeners();
   }
 
@@ -90,6 +148,7 @@ class PortfolioController extends ChangeNotifier {
       currency: currency,
       amount: amount,
     ));
+    _saveEntries();
     notifyListeners();
   }
 
@@ -98,6 +157,7 @@ class PortfolioController extends ChangeNotifier {
     final index = _entries.indexWhere((e) => e.id == id);
     if (index != -1) {
       _entries[index].amount = newAmount;
+      _saveEntries();
       notifyListeners();
     }
   }
@@ -107,6 +167,7 @@ class PortfolioController extends ChangeNotifier {
     final index = _entries.indexWhere((e) => e.id == id);
     if (index != -1) {
       final removed = _entries.removeAt(index);
+      _saveEntries();
       notifyListeners();
       return removed;
     }
