@@ -9,6 +9,7 @@ import '../../domain/repositories/currency_repository.dart';
 import '../services/analytics/analytics_manager.dart';
 import '../services/config/config_service.dart';
 import '../services/storage/storage_service.dart';
+import '../services/currency_sync_service.dart';
 import '../theme/app_theme.dart';
 // import '../../subscription/core/subscription_service.dart';
 // import '../../subscription/core/subscription_manager.dart';
@@ -49,6 +50,11 @@ Future<void> setupDependencies() async {
       fiatDataSource: getIt<FiatApiDataSource>(),
       cacheDataSource: getIt<LocalCacheDataSource>(),
     ),
+  );
+
+  // Currency Sync Service (singleton for global state management)
+  getIt.registerLazySingleton<CurrencySyncService>(
+    () => CurrencySyncService(getIt<CurrencyRepository>()),
   );
 
   // Subscription Services

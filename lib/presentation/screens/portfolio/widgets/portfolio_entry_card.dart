@@ -263,34 +263,60 @@ class _PortfolioEntryCardState extends State<PortfolioEntryCard>
   }
 
   Widget _buildEditableAmount() {
-    return Container(
-      width: 120,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: widget.appTheme.background,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: TextField(
-        controller: _amountController,
-        focusNode: _focusNode,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        textInputAction: TextInputAction.done,
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
-        ],
-        textAlign: TextAlign.right,
-        style: TextStyle(
-          color: widget.appTheme.textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 100,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: widget.appTheme.background,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TextField(
+            controller: _amountController,
+            focusNode: _focusNode,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
+            ],
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: widget.appTheme.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              isDense: true,
+            ),
+            onSubmitted: (_) => _saveAmount(),
+          ),
         ),
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-          isDense: true,
+        const SizedBox(width: 8),
+        // Accept button
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _saveAmount();
+            _focusNode.unfocus();
+          },
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: widget.appTheme.accent,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.check_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+          ),
         ),
-        onSubmitted: (_) => _saveAmount(),
-      ),
+      ],
     );
   }
 

@@ -187,8 +187,8 @@ class _CalculatorRow extends StatelessWidget {
   }
 }
 
-/// Individual calculator button with haptic feedback
-class _CalculatorButton extends StatelessWidget {
+/// Individual calculator button with haptic feedback and press animation
+class _CalculatorButton extends StatefulWidget {
   final String value;
   final _ButtonType type;
   final AppTheme appTheme;
@@ -209,85 +209,154 @@ class _CalculatorButton extends StatelessWidget {
     required this.onHide,
   });
 
+  @override
+  State<_CalculatorButton> createState() => _CalculatorButtonState();
+}
+
+class _CalculatorButtonState extends State<_CalculatorButton>
+    with SingleTickerProviderStateMixin {
+  bool _isPressed = false;
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   Color get _backgroundColor {
-    switch (type) {
+    switch (widget.type) {
       case _ButtonType.operation:
-        return appTheme.primary;
+        return widget.appTheme.primary;
       case _ButtonType.function:
-        return appTheme.surfaceLight;
+        return widget.appTheme.surfaceLight;
       case _ButtonType.equals:
-        return appTheme.accent;
+        return widget.appTheme.accent;
       case _ButtonType.hide:
-        return appTheme.surfaceLight;
+        return widget.appTheme.surfaceLight;
       case _ButtonType.number:
-        return appTheme.background.withOpacity(0.8);
+        return widget.appTheme.background.withOpacity(0.8);
+    }
+  }
+
+  Color get _pressedColor {
+    switch (widget.type) {
+      case _ButtonType.operation:
+        return widget.appTheme.primary.withOpacity(0.8);
+      case _ButtonType.function:
+        return widget.appTheme.surfaceLight.withOpacity(0.7);
+      case _ButtonType.equals:
+        return widget.appTheme.accent.withOpacity(0.8);
+      case _ButtonType.hide:
+        return widget.appTheme.surfaceLight.withOpacity(0.7);
+      case _ButtonType.number:
+        return widget.appTheme.surface;
     }
   }
 
   Color get _textColor {
-    switch (type) {
+    switch (widget.type) {
       case _ButtonType.function:
       case _ButtonType.hide:
-        return appTheme.textLight;
+        return widget.appTheme.textLight;
       default:
-        return appTheme.textPrimary;
+        return widget.appTheme.textPrimary;
     }
   }
 
-  void _handleTap() {
+  void _handleTapDown(TapDownDetails details) {
+    setState(() => _isPressed = true);
+    _controller.forward();
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() => _isPressed = false);
+    _controller.reverse();
     HapticFeedback.lightImpact();
-    if (type == _ButtonType.hide) {
-      onHide();
+    if (widget.type == _ButtonType.hide) {
+      widget.onHide();
     } else {
-      onInput(value);
+      widget.onInput(widget.value);
     }
+  }
+
+  void _handleTapCancel() {
+    setState(() => _isPressed = false);
+    _controller.reverse();
   }
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: GestureDetector(
-        onTap: _handleTap,
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
         behavior: HitTestBehavior.opaque,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: EdgeInsets.symmetric(vertical: buttonPadding),
-          decoration: BoxDecoration(
-            color: _backgroundColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.08),
-              width: 1,
-            ),
-            boxShadow: type == _ButtonType.equals
-                ? [
-                    BoxShadow(
-                      color: appTheme.accent.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Center(child: _buildContent()),
+        child: AnimatedBuilder(
+          animation: _scaleAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 80),
+                curve: Curves.easeOutCubic,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: EdgeInsets.symmetric(vertical: widget.buttonPadding),
+                decoration: BoxDecoration(
+                  color: _isPressed ? _pressedColor : _backgroundColor,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(_isPressed ? 0.12 : 0.08),
+                    width: 1,
+                  ),
+                  boxShadow: widget.type == _ButtonType.equals && !_isPressed
+                      ? [
+                          BoxShadow(
+                            color: widget.appTheme.accent.withOpacity(0.4),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Center(child: _buildContent()),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildContent() {
-    if (type == _ButtonType.hide) {
+    if (widget.type == _ButtonType.hide) {
       return Icon(
         Icons.keyboard_hide_rounded,
-        color: appTheme.textLight,
+        color: widget.appTheme.textLight,
         size: 22,
       );
     }
     return Text(
-      value,
+      widget.value,
       style: TextStyle(
         color: _textColor,
-        fontSize: type == _ButtonType.equals ? equalsFontSize : fontSize,
+        fontSize: widget.type == _ButtonType.equals
+            ? widget.equalsFontSize
+            : widget.fontSize,
         fontWeight: FontWeight.w600,
       ),
     );

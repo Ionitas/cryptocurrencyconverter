@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../domain/repositories/currency_repository.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/currency_sync_service.dart';
 import '../../utils/snackbar_helper.dart';
 import 'portfolio_controller.dart';
 import 'widgets/widgets.dart';
@@ -15,9 +18,17 @@ class PortfolioScreen extends StatefulWidget {
   State<PortfolioScreen> createState() => _PortfolioScreenState();
 }
 
-class _PortfolioScreenState extends State<PortfolioScreen> {
+class _PortfolioScreenState extends State<PortfolioScreen>
+    with SingleTickerProviderStateMixin {
   late final PortfolioController _controller;
   final AppTheme _appTheme = getIt<AppTheme>();
+  final CurrencySyncService _syncService = getIt<CurrencySyncService>();
+
+  StreamSubscription<List<dynamic>>? _currencySubscription;
+  late AnimationController _fadeController;
+
+  // Track keyboard visibility
+  bool _isKeyboardVisible = false;
 
   @override
   void initState() {
@@ -25,13 +36,30 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
     _controller = PortfolioController(repository: getIt<CurrencyRepository>());
     _controller.addListener(_onControllerChanged);
     _appTheme.addListener(_onThemeChanged);
-    _controller.loadCurrencies();
+
+    // Smooth fade-in animation
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    // Listen to currency updates from sync service
+    _currencySubscription = _syncService.currencyStream.listen((_) {
+      // Reload currencies when sync service updates
+      _controller.loadCurrencies();
+    });
+
+    _controller.loadCurrencies().then((_) {
+      _fadeController.forward();
+    });
   }
 
   @override
   void dispose() {
+    _currencySubscription?.cancel();
     _controller.removeListener(_onControllerChanged);
     _appTheme.removeListener(_onThemeChanged);
+    _fadeController.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -98,27 +126,138 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final keyboardHeight = mediaQuery.viewInsets.bottom;
+    final hasKeyboard = keyboardHeight > 0;
+
+    // Update keyboard visibility state
+    if (hasKeyboard != _isKeyboardVisible) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _isKeyboardVisible = hasKeyboard;
+          });
+        }
+      });
+    }
+
     return Scaffold(
       backgroundColor: _appTheme.background,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: _controller.isLoading ? _buildLoadingState() : _buildContent(),
+        child: Stack(
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: _controller.isLoading
+                  ? _buildLoadingState()
+                  : FadeTransition(
+                      opacity: _fadeController,
+                      child: _buildContent(),
+                    ),
+            ),
+            // Keyboard Done button overlay
+            if (hasKeyboard)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: keyboardHeight,
+                child: _buildKeyboardDoneBar(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeyboardDoneBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: _appTheme.surface,
+        border: Border(
+          top: BorderSide(
+            color: _appTheme.surfaceLight.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              FocusScope.of(context).unfocus();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: _appTheme.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Done',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildLoadingState() {
     return Center(
+      key: const ValueKey('loading'),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: _appTheme.primary),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOut,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: 0.8 + (0.2 * value),
+                child: Opacity(
+                  opacity: value,
+                  child: child,
+                ),
+              );
+            },
+            child: CircularProgressIndicator(color: _appTheme.primary),
+          ),
           const SizedBox(height: 16),
-          Text(
-            'Loading currencies...',
-            style: TextStyle(
-              color: _appTheme.textTertiary,
-              fontSize: 14,
-            ),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOut,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Text(
+                  'Loading currencies...',
+                  style: TextStyle(
+                    color: _appTheme.textTertiary,
+                    fontSize: 14,
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),

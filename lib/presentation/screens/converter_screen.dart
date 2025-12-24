@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
@@ -5,6 +6,7 @@ import '../../core/di/injection.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/onboarding_service.dart';
 import '../../core/services/portfolio_storage_service.dart';
+import '../../core/services/currency_sync_service.dart';
 // import '../../subscription/core/subscription_service.dart';
 // import '../../subscription/view/layout_widgets/view/simpleOffer_paywall.dart';
 import '../widgets/widgets.dart';
@@ -22,9 +24,14 @@ class ConverterScreen extends StatefulWidget {
 class _ConverterScreenState extends State<ConverterScreen>
     with TickerProviderStateMixin, CalculatorLogic {
   final CurrencyRepository _repository = getIt<CurrencyRepository>();
+  final CurrencySyncService _syncService = getIt<CurrencySyncService>();
   final AppTheme _appTheme = getIt<AppTheme>();
   final OnboardingService _onboardingService = OnboardingService();
   final PortfolioStorageService _storageService = PortfolioStorageService();
+
+  // Stream subscriptions
+  StreamSubscription<List<Currency>>? _currencySubscription;
+  StreamSubscription<SyncState>? _syncStateSubscription;
 
   // Currency data
   List<Currency> _allCurrencies = [];
@@ -71,20 +78,77 @@ class _ConverterScreenState extends State<ConverterScreen>
     displayValue = '0.5';
     _appTheme.addListener(_onThemeChanged);
 
-    // Initialize calculator animation
+    // Initialize calculator animation with smoother curves
     _calculatorController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
-      reverseDuration: const Duration(milliseconds: 280),
+      duration: const Duration(milliseconds: 400),
+      reverseDuration: const Duration(milliseconds: 320),
     );
     _calculatorAnimation = CurvedAnimation(
       parent: _calculatorController,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInQuad,
+      curve: Curves.easeOutExpo,
+      reverseCurve: Curves.easeInCubic,
     );
     _calculatorController.value = 1.0; // Start visible
 
+    // Subscribe to currency updates stream
+    _setupStreamSubscriptions();
+
     _initializeWithUserPreferences();
+  }
+
+  /// Setup stream subscriptions for live data updates
+  void _setupStreamSubscriptions() {
+    // Listen to currency updates
+    _currencySubscription = _syncService.currencyStream.listen((currencies) {
+      if (currencies.isNotEmpty && mounted) {
+        _updateCurrenciesFromStream(currencies);
+      }
+    });
+
+    // Listen to sync state changes
+    _syncStateSubscription = _syncService.syncStateStream.listen((state) {
+      if (mounted) {
+        // Show subtle indicator when background sync completes
+        if (state == SyncState.synced && !_syncService.lastSyncFromCache) {
+          _showBackgroundSyncComplete();
+        }
+      }
+    });
+  }
+
+  /// Update currencies when stream emits new data
+  void _updateCurrenciesFromStream(List<Currency> currencies) {
+    final oldSelected = _selectedCurrency;
+    _allCurrencies = currencies;
+
+    // Preserve selected currency if still available
+    if (oldSelected != null) {
+      _selectedCurrency = _allCurrencies.firstWhere(
+        (c) => c.symbol == oldSelected.symbol,
+        orElse: () => _allCurrencies.first,
+      );
+    }
+
+    _updateDisplayCurrencies();
+
+    if (mounted) {
+      setState(() {
+        _fromCache = _syncService.lastSyncFromCache;
+        _statusMessage = _syncService.lastSyncMessage;
+      });
+    }
+  }
+
+  void _showBackgroundSyncComplete() {
+    if (!mounted) return;
+    SnackBarHelper.show(
+      context: context,
+      message: '✓ Rates updated',
+      appTheme: _appTheme,
+      type: SnackBarType.success,
+      duration: const Duration(seconds: 1),
+    );
   }
 
   /// Load user preferences and then load currency data
@@ -101,12 +165,55 @@ class _ConverterScreenState extends State<ConverterScreen>
       _displayCurrencyOrder.insert(0, _userCurrencyCode!);
     }
 
-    // Now load currency data
-    _loadData();
+    // Check if sync service already has data (from onboarding)
+    if (_syncService.hasCachedData) {
+      _allCurrencies = _syncService.currencies;
+      await _restoreUserSelections();
+      _updateDisplayCurrencies();
+      setState(() {
+        _isLoading = false;
+        _fromCache = _syncService.lastSyncFromCache;
+        _statusMessage = 'Loaded from cache';
+      });
+
+      // Initialize for background updates (not first time)
+      _syncService.initialize(isFirstTime: false);
+    } else {
+      // No cached data, load fresh
+      _loadData();
+    }
+  }
+
+  Future<void> _restoreUserSelections() async {
+    // Try to load saved currency, otherwise default to BTC
+    final savedCurrencySymbol = await _storageService.loadConverterCurrency();
+    if (savedCurrencySymbol != null) {
+      _selectedCurrency = _allCurrencies.firstWhere(
+        (c) => c.symbol == savedCurrencySymbol,
+        orElse: () => _allCurrencies.firstWhere(
+          (c) => c.symbol == 'BTC',
+          orElse: () => _allCurrencies.first,
+        ),
+      );
+    } else {
+      _selectedCurrency = _allCurrencies.firstWhere(
+        (c) => c.symbol == 'BTC',
+        orElse: () => _allCurrencies.first,
+      );
+    }
+
+    // Load saved amount
+    final savedAmount = await _storageService.loadConverterAmount();
+    if (savedAmount != null) {
+      currentAmount = savedAmount;
+      displayValue = formatCalculatorResult(savedAmount);
+    }
   }
 
   @override
   void dispose() {
+    _currencySubscription?.cancel();
+    _syncStateSubscription?.cancel();
     _appTheme.removeListener(_onThemeChanged);
     _calculatorController.dispose();
     super.dispose();
@@ -118,39 +225,18 @@ class _ConverterScreenState extends State<ConverterScreen>
 
   Future<void> _loadData({bool forceRefresh = false}) async {
     setState(() {
-      _isLoading = true;
+      _isLoading = _allCurrencies.isEmpty;
       _statusMessage = forceRefresh ? 'Fetching fresh data...' : 'Loading...';
     });
 
-    final result = await _repository.loadCurrencies(forceRefresh: forceRefresh);
+    // Use sync service for data loading
+    final result = forceRefresh
+        ? await _syncService.syncNow(forceRefresh: true)
+        : await _syncService.initialize(isFirstTime: false);
 
     if (result.currencies.isNotEmpty) {
       _allCurrencies = result.currencies;
-
-      // Try to load saved currency, otherwise default to BTC
-      final savedCurrencySymbol = await _storageService.loadConverterCurrency();
-      if (savedCurrencySymbol != null) {
-        _selectedCurrency = _allCurrencies.firstWhere(
-          (c) => c.symbol == savedCurrencySymbol,
-          orElse: () => _allCurrencies.firstWhere(
-            (c) => c.symbol == 'BTC',
-            orElse: () => _allCurrencies.first,
-          ),
-        );
-      } else {
-        _selectedCurrency = _allCurrencies.firstWhere(
-          (c) => c.symbol == 'BTC',
-          orElse: () => _allCurrencies.first,
-        );
-      }
-
-      // Load saved amount
-      final savedAmount = await _storageService.loadConverterAmount();
-      if (savedAmount != null) {
-        currentAmount = savedAmount;
-        displayValue = formatCalculatorResult(savedAmount);
-      }
-
+      await _restoreUserSelections();
       _updateDisplayCurrencies();
     }
 
@@ -160,7 +246,7 @@ class _ConverterScreenState extends State<ConverterScreen>
       _statusMessage = result.message;
     });
 
-    if (mounted) {
+    if (mounted && forceRefresh) {
       _showDataSnackBar(result.fromCache);
     }
   }
@@ -500,20 +586,13 @@ class _ConverterScreenState extends State<ConverterScreen>
           children: [
             RepaintBoundary(
               child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 250),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
                 transitionBuilder: (child, animation) {
                   return FadeTransition(
                     opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, -0.1),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      )),
-                      child: child,
-                    ),
+                    child: child,
                   );
                 },
                 child: InputSection(
@@ -608,6 +687,21 @@ class _ConverterScreenState extends State<ConverterScreen>
         ? _calculatorHeight + 20
         : (isTablet ? 120.0 : 100.0);
 
+    // Pre-calculate conversions to avoid redundant calculations during build
+    final conversions = <String, double>{};
+    final exchangeRates = <String, double>{};
+    if (_selectedCurrency != null) {
+      for (final currency in _displayCurrencies) {
+        conversions[currency.symbol] = _repository.convert(
+          currentAmount,
+          _selectedCurrency!,
+          currency,
+        );
+        exchangeRates[currency.symbol] =
+            _repository.convert(1.0, _selectedCurrency!, currency);
+      }
+    }
+
     return CustomScrollView(
       slivers: [
         SliverPadding(
@@ -627,13 +721,8 @@ class _ConverterScreenState extends State<ConverterScreen>
                   currency: currency,
                   selectedCurrency: _selectedCurrency!,
                   index: index,
-                  convertedAmount: _repository.convert(
-                    currentAmount,
-                    _selectedCurrency!,
-                    currency,
-                  ),
-                  exchangeRate:
-                      _repository.convert(1.0, _selectedCurrency!, currency),
+                  convertedAmount: conversions[currency.symbol] ?? 0.0,
+                  exchangeRate: exchangeRates[currency.symbol] ?? 0.0,
                   appTheme: _appTheme,
                   onTap: () => _swapCurrency(currency, index),
                   onDismissed: () => _removeCurrency(currency),

@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/di/injection.dart';
 import '../../core/services/onboarding_service.dart';
 import '../../core/services/geolocation_service.dart';
+import '../../core/services/currency_sync_service.dart';
 import 'welcome_page.dart';
 import 'features_page.dart';
 import 'country_selection_page.dart';
@@ -32,6 +33,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   final AppTheme _appTheme = getIt<AppTheme>();
   final OnboardingService _onboardingService = OnboardingService();
   final GeoLocationService _geoService = GeoLocationService();
+  final CurrencySyncService _syncService = getIt<CurrencySyncService>();
 
   late PageController _pageController;
   late AnimationController _progressController;
@@ -45,6 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   CountryInfo? _selectedCountry;
   UserPurpose? _selectedPurpose;
   bool _locationDetectionComplete = false;
+  bool _dataFetchStarted = false;
 
   // Default country if detection fails
   static const CountryInfo _defaultCountry = CountryInfo(
@@ -62,8 +65,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       duration: const Duration(milliseconds: 300),
     );
 
-    // Start background location detection immediately
+    // Start background location detection and data fetch immediately
     _detectLocationInBackground();
+    _fetchDataInBackground();
   }
 
   @override
@@ -71,6 +75,20 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _pageController.dispose();
     _progressController.dispose();
     super.dispose();
+  }
+
+  /// Fetch currency data in background during onboarding
+  Future<void> _fetchDataInBackground() async {
+    if (_dataFetchStarted) return;
+    _dataFetchStarted = true;
+
+    try {
+      // Initialize sync service with isFirstTime=true to fetch fresh data
+      await _syncService.initialize(isFirstTime: true);
+    } catch (e) {
+      debugPrint('Failed to fetch data during onboarding: $e');
+      // Continue even if failed - will retry later
+    }
   }
 
   /// Detect location in background with timeout
