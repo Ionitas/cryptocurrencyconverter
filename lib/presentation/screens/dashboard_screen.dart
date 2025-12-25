@@ -5,7 +5,7 @@ import '../../core/theme/app_theme.dart';
 import 'converter_screen.dart';
 import 'portfolio/portfolio_screen.dart';
 
-/// Dashboard screen with tab navigation between Converter and Portfolio
+/// Dashboard screen with swipeable navigation between Converter and Portfolio
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -15,16 +15,23 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final AppTheme _appTheme = getIt<AppTheme>();
+  late PageController _pageController;
   int _currentIndex = 0;
+
+  // Global keys to access child screen methods
+  final GlobalKey<ConverterScreenState> _converterKey =
+      GlobalKey<ConverterScreenState>();
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: 0);
     _appTheme.addListener(_onThemeChanged);
   }
 
   @override
   void dispose() {
+    _pageController.dispose();
     _appTheme.removeListener(_onThemeChanged);
     super.dispose();
   }
@@ -36,6 +43,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _switchTab(int index) {
     if (index == _currentIndex) return;
     HapticFeedback.selectionClick();
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _onPageChanged(int index) {
     setState(() => _currentIndex = index);
   }
 
@@ -43,62 +58,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _appTheme.background,
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (child, animation) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
-        },
-        child: _currentIndex == 0
-            ? const ConverterScreen(key: ValueKey('converter'))
-            : const PortfolioScreen(key: ValueKey('portfolio')),
+      appBar: _buildAppBar(),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics: const BouncingScrollPhysics(),
+        children: [
+          ConverterScreen(key: _converterKey),
+          const PortfolioScreen(key: ValueKey('portfolio')),
+        ],
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
-  Widget _buildBottomNavBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: _appTheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: _appTheme.background,
+      elevation: 0,
+      automaticallyImplyLeading: false,
+      centerTitle: false,
+      title: Row(
+        children: [
+          _buildTabButton(
+            index: 0,
+            label: 'Converter',
+          ),
+          const SizedBox(width: 24),
+          _buildTabButton(
+            index: 1,
+            label: 'Portfolio',
           ),
         ],
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildNavItem(
-                index: 0,
-                icon: Icons.currency_exchange_rounded,
-                label: 'Converter',
-              ),
-              _buildNavItem(
-                index: 1,
-                icon: Icons.account_balance_wallet_rounded,
-                label: 'Portfolio',
-              ),
-            ],
-          ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.refresh, color: _appTheme.textPrimary),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            _converterKey.currentState?.refreshData();
+          },
+          tooltip: 'Refresh',
         ),
-      ),
+        IconButton(
+          icon: Icon(Icons.settings, color: _appTheme.textPrimary),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            _converterKey.currentState?.showSettings();
+          },
+          tooltip: 'Settings',
+        ),
+      ],
     );
   }
 
-  Widget _buildNavItem({
+  Widget _buildTabButton({
     required int index,
-    required IconData icon,
     required String label,
   }) {
     final isSelected = _currentIndex == index;
@@ -106,62 +120,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return GestureDetector(
       onTap: () => _switchTab(index),
       behavior: HitTestBehavior.opaque,
-      child: TweenAnimationBuilder<double>(
-        duration: const Duration(milliseconds: 250),
+      child: AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        tween: Tween(begin: 0.0, end: isSelected ? 1.0 : 0.0),
-        builder: (context, value, child) {
-          return Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: 16 + (8 * value),
-              vertical: 10,
-            ),
-            decoration: BoxDecoration(
-              color: _appTheme.primary.withOpacity(0.12 * value),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  child: Icon(
-                    icon,
-                    color: Color.lerp(
-                      _appTheme.textTertiary,
-                      _appTheme.primary,
-                      value,
-                    ),
-                    size: 22 + (2 * value),
-                  ),
-                ),
-                ClipRect(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    width: isSelected ? null : 0,
-                    child: Row(
-                      children: [
-                        SizedBox(width: 8 * value),
-                        Opacity(
-                          opacity: value,
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: _appTheme.primary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
+        style: TextStyle(
+          color: isSelected ? _appTheme.accent : _appTheme.textTertiary,
+          fontSize: isSelected ? 20 : 18,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        ),
+        child: Text(label),
       ),
     );
   }

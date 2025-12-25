@@ -18,10 +18,10 @@ class ConverterScreen extends StatefulWidget {
   const ConverterScreen({super.key});
 
   @override
-  State<ConverterScreen> createState() => _ConverterScreenState();
+  State<ConverterScreen> createState() => ConverterScreenState();
 }
 
-class _ConverterScreenState extends State<ConverterScreen>
+class ConverterScreenState extends State<ConverterScreen>
     with TickerProviderStateMixin, CalculatorLogic {
   final CurrencyRepository _repository = getIt<CurrencyRepository>();
   final CurrencySyncService _syncService = getIt<CurrencySyncService>();
@@ -531,34 +531,7 @@ class _ConverterScreenState extends State<ConverterScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _appTheme.background,
-      appBar: _buildAppBar(),
       body: _isLoading ? _buildLoadingView() : _buildMainContent(),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: _appTheme.background,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      title: Text(
-        'Currency Converter',
-        style: TextStyle(
-          color: _appTheme.textPrimary,
-          fontWeight: FontWeight.w600,
-          fontSize: 18,
-        ),
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(Icons.refresh, color: _appTheme.textPrimary),
-          onPressed: () => _loadData(forceRefresh: true),
-        ),
-        IconButton(
-          icon: Icon(Icons.settings, color: _appTheme.textPrimary),
-          onPressed: _showSettings,
-        ),
-      ],
     );
   }
 
@@ -577,6 +550,10 @@ class _ConverterScreenState extends State<ConverterScreen>
       ),
     );
   }
+
+  // Public methods accessible via GlobalKey
+  void refreshData() => _loadData(forceRefresh: true);
+  void showSettings() => _showSettings();
 
   Widget _buildMainContent() {
     return Stack(
