@@ -8,3 +8,4 @@ export 'calculator_pad.dart';
 export 'bottom_bar.dart';
 export 'add_currency_modal.dart';
 export 'settings_dialog.dart';
+export 'dashboard_app_bar.dart';

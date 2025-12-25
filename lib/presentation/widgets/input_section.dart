@@ -88,8 +88,8 @@ class _InputSectionState extends State<InputSection>
               curve: Curves.easeOutCubic,
               key: ValueKey(widget.selectedCurrency?.symbol ?? 'none'),
               margin: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding, vertical: 8),
-              padding: EdgeInsets.all(isTablet ? 20 : 16),
+                  horizontal: horizontalPadding, vertical: 4),
+              padding: EdgeInsets.all(isTablet ? 16 : 12),
               decoration: BoxDecoration(
                 color: widget.appTheme.surface,
                 borderRadius: BorderRadius.circular(20),
@@ -111,22 +111,9 @@ class _InputSectionState extends State<InputSection>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Main display value with currency badge on right
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'You convert',
-                        style: TextStyle(
-                          color: widget.appTheme.textSecondary,
-                          fontSize: labelFontSize,
-                        ),
-                      ),
-                      _buildCurrencyBadge(isTablet),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  // Main display value with smooth number transition
-                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
                         child: FittedBox(
@@ -153,6 +140,8 @@ class _InputSectionState extends State<InputSection>
                           ),
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      _buildCurrencyBadge(isTablet),
                     ],
                   ),
                   // Show expression hint when there's an active calculation

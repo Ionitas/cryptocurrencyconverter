@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../core/di/injection.dart';
 import '../../core/theme/app_theme.dart';
+import '../widgets/dashboard_app_bar.dart';
+import '../controllers/dashboard_controller.dart';
 import 'converter_screen.dart';
 import 'portfolio/portfolio_screen.dart';
 
@@ -15,120 +16,74 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final AppTheme _appTheme = getIt<AppTheme>();
-  late PageController _pageController;
-  int _currentIndex = 0;
+  late DashboardController _controller;
 
   // Global keys to access child screen methods
   final GlobalKey<ConverterScreenState> _converterKey =
       GlobalKey<ConverterScreenState>();
+  final GlobalKey<PortfolioScreenState> _portfolioKey =
+      GlobalKey<PortfolioScreenState>();
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: 0);
+    _controller = DashboardController();
+    _controller.addListener(_onControllerChanged);
     _appTheme.addListener(_onThemeChanged);
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
     _appTheme.removeListener(_onThemeChanged);
     super.dispose();
+  }
+
+  void _onControllerChanged() {
+    setState(() {});
   }
 
   void _onThemeChanged() {
     setState(() {});
   }
 
-  void _switchTab(int index) {
-    if (index == _currentIndex) return;
-    HapticFeedback.selectionClick();
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-    );
+  void _handleRefresh() {
+    if (_controller.currentIndex == 0) {
+      _converterKey.currentState?.refreshData();
+    } else {
+      _portfolioKey.currentState?.refreshData();
+    }
   }
 
-  void _onPageChanged(int index) {
-    setState(() => _currentIndex = index);
+  void _handleSettings() {
+    if (_controller.currentIndex == 0) {
+      _converterKey.currentState?.showSettings();
+    } else {
+      _portfolioKey.currentState?.showSettings();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _appTheme.background,
-      appBar: _buildAppBar(),
+      appBar: DashboardAppBar(
+        appTheme: _appTheme,
+        currentIndex: _controller.currentIndex,
+        tabs: const ['Converter', 'Portfolio'],
+        onTabChanged: _controller.switchTab,
+        onRefresh: _handleRefresh,
+        onSettings: _handleSettings,
+      ),
       body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
+        controller: _controller.pageController,
+        onPageChanged: _controller.onPageChanged,
         physics: const BouncingScrollPhysics(),
         children: [
           ConverterScreen(key: _converterKey),
-          const PortfolioScreen(key: ValueKey('portfolio')),
+          PortfolioScreen(key: _portfolioKey),
         ],
-      ),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: _appTheme.background,
-      elevation: 0,
-      automaticallyImplyLeading: false,
-      centerTitle: false,
-      title: Row(
-        children: [
-          _buildTabButton(
-            index: 0,
-            label: 'Converter',
-          ),
-          const SizedBox(width: 24),
-          _buildTabButton(
-            index: 1,
-            label: 'Portfolio',
-          ),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(Icons.refresh, color: _appTheme.textPrimary),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            _converterKey.currentState?.refreshData();
-          },
-          tooltip: 'Refresh',
-        ),
-        IconButton(
-          icon: Icon(Icons.settings, color: _appTheme.textPrimary),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            _converterKey.currentState?.showSettings();
-          },
-          tooltip: 'Settings',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTabButton({
-    required int index,
-    required String label,
-  }) {
-    final isSelected = _currentIndex == index;
-
-    return GestureDetector(
-      onTap: () => _switchTab(index),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedDefaultTextStyle(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
-        style: TextStyle(
-          color: isSelected ? _appTheme.accent : _appTheme.textTertiary,
-          fontSize: isSelected ? 20 : 18,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-        ),
-        child: Text(label),
       ),
     );
   }

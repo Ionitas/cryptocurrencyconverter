@@ -6,6 +6,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/currency_sync_service.dart';
 import '../../utils/snackbar_helper.dart';
+import '../../widgets/settings_dialog.dart';
 import 'portfolio_controller.dart';
 import 'widgets/widgets.dart';
 import 'widgets/add_portfolio_entry_modal.dart';
@@ -15,10 +16,10 @@ class PortfolioScreen extends StatefulWidget {
   const PortfolioScreen({super.key});
 
   @override
-  State<PortfolioScreen> createState() => _PortfolioScreenState();
+  State<PortfolioScreen> createState() => PortfolioScreenState();
 }
 
-class _PortfolioScreenState extends State<PortfolioScreen>
+class PortfolioScreenState extends State<PortfolioScreen>
     with SingleTickerProviderStateMixin {
   late final PortfolioController _controller;
   final AppTheme _appTheme = getIt<AppTheme>();
@@ -70,6 +71,42 @@ class _PortfolioScreenState extends State<PortfolioScreen>
 
   void _onThemeChanged() {
     setState(() {});
+  }
+
+  // Public methods accessible via GlobalKey
+  void refreshData() {
+    _syncService.syncNow(forceRefresh: true).then((_) {
+      _controller.loadCurrencies();
+      if (mounted) {
+        SnackBarHelper.show(
+          context: context,
+          message: 'Data refreshed',
+          appTheme: _appTheme,
+          type: SnackBarType.success,
+          duration: const Duration(seconds: 1),
+        );
+      }
+    });
+  }
+
+  void showSettings() async {
+    final lastUpdate = await _controller.repository.getLastUpdateTime();
+    final nextUpdate = _controller.repository.getNextUpdateTime();
+
+    if (!mounted) return;
+
+    SettingsDialog.show(
+      context: context,
+      fromCache: _syncService.lastSyncFromCache,
+      nextUpdate: nextUpdate,
+      lastUpdate: lastUpdate,
+      currencyCount: _controller.allCurrencies.length,
+      onForceRefresh: () async {
+        await _syncService.syncNow(forceRefresh: true);
+        _controller.loadCurrencies();
+      },
+      appTheme: _appTheme,
+    );
   }
 
   void _showChangeCurrencyPicker() {

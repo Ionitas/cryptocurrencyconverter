@@ -72,7 +72,7 @@ class PortfolioAddButton extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               const Text(
-                'Add Currency',
+                'Add Asset',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
