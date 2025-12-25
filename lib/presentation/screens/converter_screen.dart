@@ -157,12 +157,21 @@ class ConverterScreenState extends State<ConverterScreen>
     final onboardingData = await _onboardingService.loadOnboardingData();
     _userCurrencyCode = onboardingData.currencyCode;
 
-    // Add user's currency to the display list if not already present
-    if (_userCurrencyCode != null &&
-        !_displayCurrencySymbols.contains(_userCurrencyCode)) {
-      _displayCurrencySymbols.add(_userCurrencyCode!);
-      // Add at the beginning for prominence
-      _displayCurrencyOrder.insert(0, _userCurrencyCode!);
+    // Load saved display currencies if available
+    final savedSymbols = await _storageService.loadConverterDisplaySymbols();
+    final savedOrder = await _storageService.loadConverterDisplayOrder();
+
+    if (savedSymbols != null && savedOrder != null) {
+      _displayCurrencySymbols = savedSymbols;
+      _displayCurrencyOrder = savedOrder;
+    } else {
+      // First time or no saved data - use defaults and add user's country currency
+      if (_userCurrencyCode != null &&
+          !_displayCurrencySymbols.contains(_userCurrencyCode)) {
+        _displayCurrencySymbols.add(_userCurrencyCode!);
+        // Add at the beginning for prominence
+        _displayCurrencyOrder.insert(0, _userCurrencyCode!);
+      }
     }
 
     // Check if sync service already has data (from onboarding)
@@ -279,6 +288,7 @@ class ConverterScreenState extends State<ConverterScreen>
       _displayCurrencyOrder.remove(currency.symbol);
       _updateDisplayCurrencies();
     });
+    _saveConverterState();
   }
 
   void _addCurrency(Currency currency) {
@@ -289,6 +299,8 @@ class ConverterScreenState extends State<ConverterScreen>
       }
       _updateDisplayCurrencies();
     });
+
+    _saveConverterState();
 
     SnackBarHelper.show(
       context: context,
@@ -311,6 +323,7 @@ class ConverterScreenState extends State<ConverterScreen>
         }
       }
     });
+    _saveConverterState();
   }
 
   void _swapCurrency(Currency currency, int index) {
@@ -355,6 +368,11 @@ class ConverterScreenState extends State<ConverterScreen>
         currencySymbol: _selectedCurrency!.symbol,
       );
     }
+    // Save display currencies
+    _storageService.saveConverterDisplayCurrencies(
+      symbols: _displayCurrencySymbols,
+      order: _displayCurrencyOrder,
+    );
   }
 
   void _onCalculatorInput(String value) {

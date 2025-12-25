@@ -7,6 +7,9 @@ class PortfolioStorageService {
   static const String _portfolioBaseCurrencyKey = 'portfolio_base_currency';
   static const String _converterAmountKey = 'converter_last_amount';
   static const String _converterCurrencyKey = 'converter_last_currency';
+  static const String _converterDisplayCurrenciesKey =
+      'converter_display_currencies';
+  static const String _converterDisplayOrderKey = 'converter_display_order';
 
   /// Save portfolio entries (list of currency symbol + amount)
   Future<void> savePortfolioEntries(List<Map<String, dynamic>> entries) async {
@@ -60,5 +63,28 @@ class PortfolioStorageService {
   Future<String?> loadConverterCurrency() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_converterCurrencyKey);
+  }
+
+  /// Save converter display currencies (symbols set and order list)
+  Future<void> saveConverterDisplayCurrencies({
+    required Set<String> symbols,
+    required List<String> order,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_converterDisplayCurrenciesKey, symbols.toList());
+    await prefs.setStringList(_converterDisplayOrderKey, order);
+  }
+
+  /// Load converter display currencies symbols
+  Future<Set<String>?> loadConverterDisplaySymbols() async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(_converterDisplayCurrenciesKey);
+    return list != null ? Set<String>.from(list) : null;
+  }
+
+  /// Load converter display currencies order
+  Future<List<String>?> loadConverterDisplayOrder() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_converterDisplayOrderKey);
   }
 }
