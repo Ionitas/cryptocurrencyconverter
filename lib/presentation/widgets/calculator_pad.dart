@@ -70,25 +70,25 @@ class _CalculatorPadState extends State<CalculatorPad> {
     final mediaQuery = MediaQuery.of(context);
     final bottomPadding = mediaQuery.padding.bottom;
     final isTablet = mediaQuery.size.shortestSide >= 600;
-    final buttonPadding = isTablet ? 20.0 : 16.0;
-    final buttonSpacing = isTablet ? 12.0 : 8.0;
-    final fontSize = isTablet ? 24.0 : 20.0;
-    final equalsFontSize = isTablet ? 28.0 : 24.0;
+    final buttonPadding = isTablet ? 16.0 : 12.0;
+    final buttonSpacing = isTablet ? 10.0 : 6.0;
+    final fontSize = isTablet ? 22.0 : 18.0;
+    final equalsFontSize = isTablet ? 26.0 : 22.0;
 
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
         child: Container(
           padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 12,
-            bottom: bottomPadding > 0 ? bottomPadding : 16,
+            left: 12,
+            right: 12,
+            top: 10,
+            bottom: bottomPadding > 0 ? bottomPadding : 12,
           ),
           decoration: BoxDecoration(
             color: widget.appTheme.surface.withOpacity(0.92),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             border: Border(
               top: BorderSide(
                 color: Colors.white.withOpacity(0.15),
