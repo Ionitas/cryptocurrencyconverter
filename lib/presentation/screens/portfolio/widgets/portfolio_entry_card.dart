@@ -41,16 +41,15 @@ class _PortfolioEntryCardState extends State<PortfolioEntryCard>
   @override
   void initState() {
     super.initState();
-    _amountController =
-        TextEditingController(text: widget.entry.amount.toString());
+    _amountController = TextEditingController(text: widget.entry.amount.toString());
     _focusNode.addListener(_onFocusChange);
 
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 100),
       vsync: this,
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
   }
 
@@ -139,7 +138,10 @@ class _PortfolioEntryCardState extends State<PortfolioEntryCard>
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.red.shade400, Colors.red.shade700],
+          colors: [
+            widget.appTheme.error.withOpacity(0.8),
+            widget.appTheme.error,
+          ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
@@ -165,16 +167,16 @@ class _PortfolioEntryCardState extends State<PortfolioEntryCard>
   }
 
   Widget _buildCardContent() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: widget.appTheme.surface,
         borderRadius: BorderRadius.circular(18),
-        border: _isEditing
-            ? Border.all(color: widget.appTheme.primary, width: 2)
-            : Border.all(color: widget.appTheme.surface, width: 2),
+        border: Border.all(
+          color: _isEditing ? widget.appTheme.primary : widget.appTheme.surface,
+          width: 2,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),

@@ -35,9 +35,7 @@ class CurrencyCard extends StatefulWidget {
   State<CurrencyCard> createState() => _CurrencyCardState();
 }
 
-class _CurrencyCardState extends State<CurrencyCard>
-    with SingleTickerProviderStateMixin {
-  bool _isPressed = false;
+class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderStateMixin {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
 
@@ -46,10 +44,10 @@ class _CurrencyCardState extends State<CurrencyCard>
     super.initState();
     _scaleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 100),
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutCubic),
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeOut),
     );
   }
 
@@ -60,17 +58,14 @@ class _CurrencyCardState extends State<CurrencyCard>
   }
 
   void _onTapDown(TapDownDetails details) {
-    setState(() => _isPressed = true);
     _scaleController.forward();
   }
 
   void _onTapUp(TapUpDetails details) {
-    setState(() => _isPressed = false);
     _scaleController.reverse();
   }
 
   void _onTapCancel() {
-    setState(() => _isPressed = false);
     _scaleController.reverse();
   }
 
@@ -90,15 +85,17 @@ class _CurrencyCardState extends State<CurrencyCard>
         padding: const EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.red.shade600, Colors.red.shade800],
+            colors: [
+              widget.appTheme.error.withOpacity(0.85),
+              widget.appTheme.error,
+            ],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
           borderRadius: BorderRadius.circular(16),
         ),
         alignment: Alignment.centerRight,
-        child: const Icon(Icons.delete_outline_rounded,
-            color: Colors.white, size: 24),
+        child: Icon(Icons.delete_outline_rounded, color: widget.appTheme.textLight, size: 24),
       ),
       child: GestureDetector(
         onTap: () {
@@ -113,25 +110,19 @@ class _CurrencyCardState extends State<CurrencyCard>
           builder: (context, child) {
             return Transform.scale(
               scale: _scaleAnimation.value,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
+              child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: _isPressed
-                      ? widget.appTheme.surface.withOpacity(0.8)
-                      : widget.appTheme.surface,
+                  color: widget.appTheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: _isPressed
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -202,16 +193,16 @@ class _CurrencyCardState extends State<CurrencyCard>
                                       ? Icons.arrow_drop_up
                                       : Icons.arrow_drop_down,
                                   color: widget.currency.changePercent24h >= 0
-                                      ? Colors.green
-                                      : Colors.red,
+                                      ? widget.appTheme.success
+                                      : widget.appTheme.error,
                                   size: 16,
                                 ),
                                 Text(
                                   '${widget.currency.changePercent24h >= 0 ? '+' : ''}${widget.currency.changePercent24h.toStringAsFixed(2)}%',
                                   style: TextStyle(
                                     color: widget.currency.changePercent24h >= 0
-                                        ? Colors.green
-                                        : Colors.red,
+                                        ? widget.appTheme.success
+                                        : widget.appTheme.error,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
                                   ),

@@ -37,8 +37,7 @@ class Background extends StatelessWidget {
       case BackgroundType.gradient:
         return _buildGradientBackground();
       case BackgroundType.solid:
-        return Container(
-            color: color ?? Theme.of(context).scaffoldBackgroundColor);
+        return Container(color: color ?? Theme.of(context).scaffoldBackgroundColor);
       case BackgroundType.image:
         return _buildImageBackground();
     }

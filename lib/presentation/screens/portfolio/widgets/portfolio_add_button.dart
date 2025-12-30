@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/design_tokens.dart';
 
 /// Bottom add button for adding new currencies
 class PortfolioAddButton extends StatelessWidget {
@@ -14,70 +15,44 @@ class PortfolioAddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final isTablet = mediaQuery.size.shortestSide >= 600;
-    final horizontalPadding = isTablet ? 24.0 : 16.0;
-    final bottomPadding = mediaQuery.padding.bottom;
+    final horizontalPadding = DesignTokens.getScreenPaddingH(context);
 
     return Container(
       padding: EdgeInsets.only(
         left: horizontalPadding,
         right: horizontalPadding,
-        top: 12,
-        bottom: bottomPadding > 0 ? bottomPadding : 12,
+        top: DesignTokens.spaceM,
+        bottom: DesignTokens.spaceXXL,
       ),
       decoration: BoxDecoration(
         color: appTheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(DesignTokens.radiusXXXL),
+        ),
+        boxShadow: DesignTokens.bottomBarShadow(),
       ),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: EdgeInsets.symmetric(
+            horizontal: DesignTokens.buttonPaddingH,
+            vertical: DesignTokens.buttonPaddingV,
+          ),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                appTheme.primary,
-                appTheme.primary.withOpacity(0.85),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: appTheme.primary.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            color: appTheme.background,
+            borderRadius: BorderRadius.circular(DesignTokens.radius),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.add_rounded,
-                    color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 12),
-              const Text(
+              Icon(Icons.add, color: appTheme.primary, size: DesignTokens.icon),
+              SizedBox(width: DesignTokens.spaceS),
+              Text(
                 'Add Asset',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
+                  color: appTheme.primary,
+                  fontSize: DesignTokens.text,
                   fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
                 ),
               ),
             ],

@@ -32,8 +32,7 @@ class PortfolioTotalSection extends StatelessWidget {
     return GestureDetector(
       onTap: onChangeCurrency,
       child: Container(
-        margin:
-            EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
+        margin: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 8),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: appTheme.surface,

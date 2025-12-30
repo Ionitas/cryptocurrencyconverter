@@ -60,8 +60,7 @@ class PortfolioEmptyState extends StatelessWidget {
             GestureDetector(
               onTap: onAddCurrency,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 decoration: BoxDecoration(
                   color: appTheme.primary,
                   borderRadius: BorderRadius.circular(14),
@@ -76,8 +75,7 @@ class PortfolioEmptyState extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.add_rounded,
-                        color: Colors.white, size: 20),
+                    const Icon(Icons.add_rounded, color: Colors.white, size: 20),
                     const SizedBox(width: 8),
                     const Text(
                       'Add First Currency',

@@ -37,8 +37,7 @@ class AddCurrencyModal extends StatefulWidget {
           child: Container(
             decoration: BoxDecoration(
               color: appTheme.surface.withOpacity(0.85),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(
                 color: Colors.white.withOpacity(0.1),
                 width: 1,
@@ -99,8 +98,11 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
     final bottomPadding = mediaQuery.padding.bottom;
     final keyboardHeight = mediaQuery.viewInsets.bottom;
 
-    return Padding(
+    // Keep modal content above keyboard without breaking drag.
+    return AnimatedPadding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
       child: DraggableScrollableSheet(
         initialChildSize: 0.7,
         minChildSize: 0.5,
@@ -161,7 +163,9 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
                     )
                   : ListView.builder(
                       controller: scrollController,
-                      padding: const EdgeInsets.only(bottom: 80),
+                      padding: EdgeInsets.only(
+                        bottom: (bottomPadding > 0 ? bottomPadding : 16) + 72,
+                      ),
                       itemCount: _filteredCurrencies.length,
                       itemBuilder: (context, index) {
                         final currency = _filteredCurrencies[index];
@@ -171,9 +175,8 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
                           onTap: () {
                             widget.onAdd(currency);
                             setState(() {
-                              _filteredCurrencies = _filteredCurrencies
-                                  .where((c) => c.id != currency.id)
-                                  .toList();
+                              _filteredCurrencies =
+                                  _filteredCurrencies.where((c) => c.id != currency.id).toList();
                             });
                           },
                         );
@@ -320,8 +323,7 @@ class _CurrencyListItem extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: appTheme.primary.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(10),

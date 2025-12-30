@@ -121,8 +121,7 @@ class _CooldownButtonWidgetState extends State<CooldownButtonWidget> {
       case CooldownButtonLoadingType.text:
         String displayText = '$_remainingSeconds';
         if (widget.textOnCountdown != null) {
-          displayText =
-              widget.textOnCountdown!.replaceAll('{s}', '$_remainingSeconds');
+          displayText = widget.textOnCountdown!.replaceAll('{s}', '$_remainingSeconds');
         }
         return Container(
           width: widget.size + 8,

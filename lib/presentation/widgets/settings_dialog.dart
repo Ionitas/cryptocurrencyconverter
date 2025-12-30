@@ -86,8 +86,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       ),
       title: Text(
         'Settings',
-        style:
-            TextStyle(color: appTheme.textPrimary, fontWeight: FontWeight.bold),
+        style: TextStyle(color: appTheme.textPrimary, fontWeight: FontWeight.bold),
       ),
       content: SizedBox(
         width: double.maxFinite,
@@ -109,9 +108,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   children: [
                     Icon(
                       widget.fromCache ? Icons.storage : Icons.cloud_done,
-                      color: widget.fromCache
-                          ? appTheme.warning
-                          : appTheme.success,
+                      color: widget.fromCache ? appTheme.warning : appTheme.success,
                       size: 24,
                     ),
                     const SizedBox(width: 12),
@@ -120,13 +117,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            widget.fromCache
-                                ? 'Using Cached Data'
-                                : 'Live Data',
+                            widget.fromCache ? 'Using Cached Data' : 'Live Data',
                             style: TextStyle(
-                              color: widget.fromCache
-                                  ? appTheme.warning
-                                  : appTheme.success,
+                              color: widget.fromCache ? appTheme.warning : appTheme.success,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -153,16 +146,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
               const SizedBox(height: 16),
               if (widget.lastUpdate != null) ...[
-                _buildInfoRow(
-                    'Last Update', _formatDateTime(widget.lastUpdate!)),
+                _buildInfoRow('Last Update', _formatDateTime(widget.lastUpdate!)),
                 const SizedBox(height: 8),
               ],
               _buildInfoRow('Currencies', '${widget.currencyCount}'),
               // User country section
               if (widget.userCountry != null) ...[
                 const SizedBox(height: 8),
-                _buildInfoRow('Your Country',
-                    '${widget.userCountryFlag ?? '🌍'} ${widget.userCountry}'),
+                _buildInfoRow(
+                    'Your Country', '${widget.userCountryFlag ?? '🌍'} ${widget.userCountry}'),
                 if (widget.userCurrencyCode != null) ...[
                   const SizedBox(height: 8),
                   _buildInfoRow('Your Currency', widget.userCurrencyCode!),
@@ -220,8 +212,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
           },
           child: Text(
             'Force Refresh',
-            style:
-                TextStyle(color: appTheme.primary, fontWeight: FontWeight.w600),
+            style: TextStyle(color: appTheme.primary, fontWeight: FontWeight.w600),
           ),
         ),
         TextButton(
@@ -244,9 +235,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected
-              ? appTheme.primary.withOpacity(0.2)
-              : Colors.transparent,
+          color: isSelected ? appTheme.primary.withOpacity(0.2) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? appTheme.primary : appTheme.surfaceLight,
@@ -268,11 +257,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
                   Text(
                     title,
                     style: TextStyle(
-                      color: isSelected
-                          ? appTheme.textPrimary
-                          : appTheme.textSecondary,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? appTheme.textPrimary : appTheme.textSecondary,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       fontSize: 14,
                     ),
                   ),

@@ -77,8 +77,7 @@ class PortfolioController extends ChangeNotifier {
       _allCurrencies = result.currencies;
 
       // Load saved base currency or default to USD
-      final savedBaseCurrency =
-          await _storageService.loadPortfolioBaseCurrency();
+      final savedBaseCurrency = await _storageService.loadPortfolioBaseCurrency();
       if (savedBaseCurrency != null) {
         _baseCurrency = _allCurrencies.firstWhere(
           (c) => c.symbol == savedBaseCurrency,

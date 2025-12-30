@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 
 /// Calculator keypad widget with smooth slide animation and Liquid Glass effect
 class CalculatorPad extends StatefulWidget {
@@ -67,38 +68,44 @@ class _CalculatorPadState extends State<CalculatorPad> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final bottomPadding = mediaQuery.padding.bottom;
-    final isTablet = mediaQuery.size.shortestSide >= 600;
-    final buttonPadding = isTablet ? 16.0 : 12.0;
-    final buttonSpacing = isTablet ? 10.0 : 6.0;
-    final fontSize = isTablet ? 22.0 : 18.0;
-    final equalsFontSize = isTablet ? 26.0 : 22.0;
+    final bottomPadding = DesignTokens.getBottomPadding(context);
+    final isTablet = DesignTokens.isTablet(context);
+    final buttonPadding = isTablet ? DesignTokens.space : DesignTokens.spaceM;
+    final buttonSpacing =
+        isTablet ? DesignTokens.radiusS : DesignTokens.spaceS - 2;
+    final fontSize = isTablet ? DesignTokens.textHeadline : DesignTokens.textL;
+    final equalsFontSize = isTablet ? 26.0 : DesignTokens.textHeadline;
 
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius:
+          BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+        filter: ImageFilter.blur(
+            sigmaX: DesignTokens.blurHeavy, sigmaY: DesignTokens.blurHeavy),
         child: Container(
           padding: EdgeInsets.only(
-            left: 12,
-            right: 12,
-            top: 10,
-            bottom: bottomPadding > 0 ? bottomPadding : 12,
+            left: DesignTokens.spaceM,
+            right: DesignTokens.spaceM,
+            top: DesignTokens.radiusS,
+            bottom: bottomPadding,
           ),
           decoration: BoxDecoration(
-            color: widget.appTheme.surface.withOpacity(0.92),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            color: widget.appTheme.surface
+                .withOpacity(DesignTokens.opacityVeryHigh),
+            borderRadius: BorderRadius.vertical(
+                top: Radius.circular(DesignTokens.radiusXXL)),
             border: Border(
               top: BorderSide(
-                color: Colors.white.withOpacity(0.15),
-                width: 1,
+                color:
+                    Colors.white.withOpacity(DesignTokens.opacityMediumLight),
+                width: DesignTokens.borderThin,
               ),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.25),
-                blurRadius: 30,
+                color:
+                    Colors.black.withOpacity(DesignTokens.shadowOpacityHeavy),
+                blurRadius: DesignTokens.blurVeryHeavy,
                 offset: const Offset(0, -8),
               ),
             ],
@@ -108,12 +115,13 @@ class _CalculatorPadState extends State<CalculatorPad> {
             children: [
               // Drag handle indicator
               Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 12),
+                width: DesignTokens.dragHandleWidth,
+                height: DesignTokens.dragHandleHeight,
+                margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: widget.appTheme.primaryLight.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(2),
+                  color: widget.appTheme.primaryLight
+                      .withOpacity(DesignTokens.opacityVeryHeavy),
+                  borderRadius: BorderRadius.circular(DesignTokens.spaceXS / 2),
                 ),
               ),
               // Calculator buttons - using RepaintBoundary for performance
@@ -215,7 +223,6 @@ class _CalculatorButton extends StatefulWidget {
 
 class _CalculatorButtonState extends State<_CalculatorButton>
     with SingleTickerProviderStateMixin {
-  bool _isPressed = false;
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -252,21 +259,6 @@ class _CalculatorButtonState extends State<_CalculatorButton>
     }
   }
 
-  Color get _pressedColor {
-    switch (widget.type) {
-      case _ButtonType.operation:
-        return widget.appTheme.primary.withOpacity(0.8);
-      case _ButtonType.function:
-        return widget.appTheme.surfaceLight.withOpacity(0.7);
-      case _ButtonType.equals:
-        return widget.appTheme.accent.withOpacity(0.8);
-      case _ButtonType.hide:
-        return widget.appTheme.surfaceLight.withOpacity(0.7);
-      case _ButtonType.number:
-        return widget.appTheme.surface;
-    }
-  }
-
   Color get _textColor {
     switch (widget.type) {
       case _ButtonType.function:
@@ -278,12 +270,10 @@ class _CalculatorButtonState extends State<_CalculatorButton>
   }
 
   void _handleTapDown(TapDownDetails details) {
-    setState(() => _isPressed = true);
     _controller.forward();
   }
 
   void _handleTapUp(TapUpDetails details) {
-    setState(() => _isPressed = false);
     _controller.reverse();
     HapticFeedback.lightImpact();
     if (widget.type == _ButtonType.hide) {
@@ -294,7 +284,6 @@ class _CalculatorButtonState extends State<_CalculatorButton>
   }
 
   void _handleTapCancel() {
-    setState(() => _isPressed = false);
     _controller.reverse();
   }
 
@@ -311,19 +300,17 @@ class _CalculatorButtonState extends State<_CalculatorButton>
           builder: (context, child) {
             return Transform.scale(
               scale: _scaleAnimation.value,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 80),
-                curve: Curves.easeOutCubic,
+              child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 padding: EdgeInsets.symmetric(vertical: widget.buttonPadding),
                 decoration: BoxDecoration(
-                  color: _isPressed ? _pressedColor : _backgroundColor,
+                  color: _backgroundColor,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: Colors.white.withOpacity(_isPressed ? 0.12 : 0.08),
+                    color: Colors.white.withOpacity(0.08),
                     width: 1,
                   ),
-                  boxShadow: widget.type == _ButtonType.equals && !_isPressed
+                  boxShadow: widget.type == _ButtonType.equals
                       ? [
                           BoxShadow(
                             color: widget.appTheme.accent.withOpacity(0.4),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/models/currency.dart';
 import 'currency_icon.dart';
 
@@ -25,8 +26,7 @@ class InputSection extends StatefulWidget {
   State<InputSection> createState() => _InputSectionState();
 }
 
-class _InputSectionState extends State<InputSection>
-    with SingleTickerProviderStateMixin {
+class _InputSectionState extends State<InputSection> with SingleTickerProviderStateMixin {
   bool _isPressed = false;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -36,7 +36,7 @@ class _InputSectionState extends State<InputSection>
     super.initState();
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: DesignTokens.animShort,
     );
     _pulseAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeOutCubic),
@@ -68,11 +68,10 @@ class _InputSectionState extends State<InputSection>
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final isTablet = mediaQuery.size.shortestSide >= 600;
-    final horizontalPadding = isTablet ? 24.0 : 16.0;
-    final valueFontSize = isTablet ? 52.0 : 42.0;
-    final labelFontSize = isTablet ? 16.0 : 14.0;
+    final isTablet = DesignTokens.isTablet(context);
+    final horizontalPadding = DesignTokens.getScreenPaddingH(context);
+    final valueFontSize = isTablet ? DesignTokens.textDisplayL : DesignTokens.textDisplay;
+    final labelFontSize = isTablet ? DesignTokens.text : DesignTokens.textBody;
 
     return GestureDetector(
       onTapDown: _onTapDown,
@@ -83,28 +82,22 @@ class _InputSectionState extends State<InputSection>
         builder: (context, child) {
           return Transform.scale(
             scale: _pulseAnimation.value,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutCubic,
-              key: ValueKey(widget.selectedCurrency?.symbol ?? 'none'),
+            child: Container(
               margin: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding, vertical: 4),
-              padding: EdgeInsets.all(isTablet ? 16 : 12),
+                  horizontal: horizontalPadding, vertical: DesignTokens.spaceXS),
+              padding: EdgeInsets.all(isTablet ? DesignTokens.space : DesignTokens.spaceM),
               decoration: BoxDecoration(
                 color: widget.appTheme.surface,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(DesignTokens.radiusXXL),
                 border: Border.all(
-                  color: _isPressed
-                      ? widget.appTheme.primary.withOpacity(0.8)
-                      : widget.appTheme.primary,
-                  width: 2,
+                  color: widget.appTheme.primary,
+                  width: DesignTokens.border,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: widget.appTheme.primary
-                        .withOpacity(_isPressed ? 0.15 : 0.1),
-                    blurRadius: _isPressed ? 20 : 15,
-                    offset: const Offset(0, 4),
+                    color: widget.appTheme.primary.withOpacity(DesignTokens.opacityLight),
+                    blurRadius: DesignTokens.shadowBlurL,
+                    offset: Offset(0, DesignTokens.shadowOffsetM),
                   ),
                 ],
               ),
@@ -119,24 +112,15 @@ class _InputSectionState extends State<InputSection>
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 150),
-                            transitionBuilder: (child, animation) {
-                              return FadeTransition(
-                                opacity: animation,
-                                child: child,
-                              );
-                            },
-                            child: Text(
-                              widget.displayValue,
-                              key: ValueKey(widget.displayValue),
-                              style: TextStyle(
-                                color: widget.appTheme.textPrimary,
-                                fontSize: valueFontSize,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
+                          // Remove AnimatedSwitcher - direct text for instant digit updates
+                          child: Text(
+                            widget.displayValue,
+                            style: TextStyle(
+                              color: widget.appTheme.textPrimary,
+                              fontSize: valueFontSize,
+                              fontWeight: FontWeight.bold,
                             ),
+                            maxLines: 1,
                           ),
                         ),
                       ),
@@ -145,23 +129,23 @@ class _InputSectionState extends State<InputSection>
                     ],
                   ),
                   // Show expression hint when there's an active calculation
-                  AnimatedCrossFade(
-                    duration: const Duration(milliseconds: 200),
-                    crossFadeState: widget.calculatorExpression.isNotEmpty &&
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topLeft,
+                    child: widget.calculatorExpression.isNotEmpty &&
                             widget.calculatorExpression != widget.displayValue
-                        ? CrossFadeState.showFirst
-                        : CrossFadeState.showSecond,
-                    firstChild: Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        widget.calculatorExpression,
-                        style: TextStyle(
-                          color: widget.appTheme.textTertiary,
-                          fontSize: labelFontSize - 2,
-                        ),
-                      ),
-                    ),
-                    secondChild: const SizedBox.shrink(),
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              widget.calculatorExpression,
+                              style: TextStyle(
+                                color: widget.appTheme.textTertiary,
+                                fontSize: labelFontSize - 2,
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
                 ],
               ),
@@ -173,27 +157,25 @@ class _InputSectionState extends State<InputSection>
   }
 
   Widget _buildCurrencyBadge(bool isTablet) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+    return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isTablet ? 12 : 10,
         vertical: isTablet ? 8 : 6,
       ),
       decoration: BoxDecoration(
         color: widget.appTheme.background,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(DesignTokens.radiusM),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CurrencyIcon(
-              currency: widget.selectedCurrency, size: isTablet ? 24 : 20),
+          CurrencyIcon(currency: widget.selectedCurrency, size: isTablet ? 24 : 20),
           const SizedBox(width: 6),
           Text(
             widget.selectedCurrency?.symbol ?? '',
             style: TextStyle(
               color: widget.appTheme.textPrimary,
-              fontSize: isTablet ? 16 : 14,
+              fontSize: isTablet ? DesignTokens.text : DesignTokens.textBody,
               fontWeight: FontWeight.bold,
             ),
           ),

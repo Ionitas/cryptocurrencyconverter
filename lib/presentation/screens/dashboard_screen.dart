@@ -19,10 +19,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late DashboardController _controller;
 
   // Global keys to access child screen methods
-  final GlobalKey<ConverterScreenState> _converterKey =
-      GlobalKey<ConverterScreenState>();
-  final GlobalKey<PortfolioScreenState> _portfolioKey =
-      GlobalKey<PortfolioScreenState>();
+  final GlobalKey<ConverterScreenState> _converterKey = GlobalKey<ConverterScreenState>();
+  final GlobalKey<PortfolioScreenState> _portfolioKey = GlobalKey<PortfolioScreenState>();
 
   @override
   void initState() {

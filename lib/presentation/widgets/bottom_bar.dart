@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 
 /// Bottom bar with add currency and calculator buttons
 class BottomBar extends StatelessWidget {
@@ -16,26 +17,19 @@ class BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final bottomPadding = mediaQuery.padding.bottom;
+    final bottomPadding = DesignTokens.getBottomPadding(context);
 
     return Container(
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: bottomPadding > 0 ? bottomPadding : 12,
+        left: DesignTokens.space,
+        right: DesignTokens.space,
+        top: DesignTokens.spaceM,
+        bottom: bottomPadding,
       ),
       decoration: BoxDecoration(
         color: appTheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXXL)),
+        boxShadow: DesignTokens.bottomBarShadow(),
       ),
       child: Row(
         children: [
@@ -43,22 +37,24 @@ class BottomBar extends StatelessWidget {
             child: GestureDetector(
               onTap: onAddCurrency,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: EdgeInsets.symmetric(
+                  horizontal: DesignTokens.buttonPaddingH,
+                  vertical: DesignTokens.buttonPaddingV,
+                ),
                 decoration: BoxDecoration(
                   color: appTheme.background,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(DesignTokens.radius),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.add, color: appTheme.primary, size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.add, color: appTheme.primary, size: DesignTokens.icon),
+                    SizedBox(width: DesignTokens.spaceS),
                     Text(
                       'Add Currency',
                       style: TextStyle(
                         color: appTheme.primary,
-                        fontSize: 16,
+                        fontSize: DesignTokens.text,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -67,17 +63,16 @@ class BottomBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: DesignTokens.spaceM),
           GestureDetector(
             onTap: onShowCalculator,
             child: Container(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(DesignTokens.buttonPaddingV),
               decoration: BoxDecoration(
                 color: appTheme.primary,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(DesignTokens.radius),
               ),
-              child:
-                  Icon(Icons.calculate, color: appTheme.textPrimary, size: 22),
+              child: Icon(Icons.calculate, color: appTheme.textPrimary, size: DesignTokens.iconL),
             ),
           ),
         ],

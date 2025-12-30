@@ -53,8 +53,7 @@ class CurrencyPickerModal extends StatefulWidget {
           child: Container(
             decoration: BoxDecoration(
               color: appTheme.surface.withOpacity(0.92),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(
                 color: Colors.white.withOpacity(0.1),
                 width: 1,
@@ -127,8 +126,10 @@ class _CurrencyPickerModalState extends State<CurrencyPickerModal> {
     final bottomPadding = mediaQuery.padding.bottom;
     final keyboardHeight = mediaQuery.viewInsets.bottom;
 
-    return Padding(
+    return AnimatedPadding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
       child: DraggableScrollableSheet(
         initialChildSize: 0.7,
         minChildSize: 0.5,
@@ -210,8 +211,7 @@ class _CurrencyPickerModalState extends State<CurrencyPickerModal> {
             prefixIcon: Icon(Icons.search, color: widget.appTheme.textTertiary),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
-                    icon: Icon(Icons.clear,
-                        color: widget.appTheme.textTertiary, size: 20),
+                    icon: Icon(Icons.clear, color: widget.appTheme.textTertiary, size: 20),
                     onPressed: () {
                       _searchController.clear();
                       _filterCurrencies('');
@@ -219,8 +219,7 @@ class _CurrencyPickerModalState extends State<CurrencyPickerModal> {
                   )
                 : null,
             border: InputBorder.none,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
           onChanged: _filterCurrencies,
         ),

@@ -19,8 +19,7 @@ class NoInternetScreen extends StatefulWidget {
   State<NoInternetScreen> createState() => _NoInternetScreenState();
 }
 
-class _NoInternetScreenState extends State<NoInternetScreen>
-    with SingleTickerProviderStateMixin {
+class _NoInternetScreenState extends State<NoInternetScreen> with SingleTickerProviderStateMixin {
   late AnimationController _animController;
   late Animation<double> _pulseAnimation;
   bool _isRetrying = false;
@@ -65,8 +64,7 @@ class _NoInternetScreenState extends State<NoInternetScreen>
 
   Future<bool> _checkInternetConnection() async {
     try {
-      final result = await InternetAddress.lookup('google.com')
-          .timeout(const Duration(seconds: 5));
+      final result = await InternetAddress.lookup('google.com').timeout(const Duration(seconds: 5));
       return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
     } catch (e) {
       return false;

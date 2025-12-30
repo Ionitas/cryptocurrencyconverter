@@ -4,6 +4,7 @@ import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
 import '../../core/di/injection.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/services/onboarding_service.dart';
 import '../../core/services/portfolio_storage_service.dart';
 import '../../core/services/currency_sync_service.dart';
@@ -39,22 +40,8 @@ class ConverterScreenState extends State<ConverterScreen>
   List<Currency> _displayCurrencies = [];
 
   // Default currencies - will be updated with user's country currency
-  List<String> _displayCurrencyOrder = [
-    'USD',
-    'EUR',
-    'ETH',
-    'GBP',
-    'JPY',
-    'USDT'
-  ];
-  Set<String> _displayCurrencySymbols = {
-    'USD',
-    'EUR',
-    'ETH',
-    'GBP',
-    'JPY',
-    'USDT'
-  };
+  List<String> _displayCurrencyOrder = ['USD', 'EUR', 'ETH', 'GBP', 'JPY', 'USDT'];
+  Set<String> _displayCurrencySymbols = {'USD', 'EUR', 'ETH', 'GBP', 'JPY', 'USDT'};
 
   // User's country currency
   String? _userCurrencyCode;
@@ -173,8 +160,7 @@ class ConverterScreenState extends State<ConverterScreen>
       _displayCurrencyOrder = savedOrder;
     } else {
       // First time or no saved data - use defaults and add user's country currency
-      if (_userCurrencyCode != null &&
-          !_displayCurrencySymbols.contains(_userCurrencyCode)) {
+      if (_userCurrencyCode != null && !_displayCurrencySymbols.contains(_userCurrencyCode)) {
         _displayCurrencySymbols.add(_userCurrencyCode!);
         // Add at the beginning for prominence
         _displayCurrencyOrder.insert(0, _userCurrencyCode!);
@@ -429,8 +415,7 @@ class ConverterScreenState extends State<ConverterScreen>
 
   void _onCalculatorDragEnd(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
-    final progress =
-        _calculatorHeight > 0 ? _dragOffset / _calculatorHeight : 0.0;
+    final progress = _calculatorHeight > 0 ? _dragOffset / _calculatorHeight : 0.0;
 
     // Calculate the current visual position as animation value
     final currentAnimValue = (1.0 - progress).clamp(0.0, 1.0);
@@ -448,8 +433,7 @@ class ConverterScreenState extends State<ConverterScreen>
       // Hide with faster animation when swiped
       _calculatorController.animateTo(
         0.0,
-        duration: Duration(
-            milliseconds: (180 * currentAnimValue).toInt().clamp(80, 200)),
+        duration: Duration(milliseconds: (180 * currentAnimValue).toInt().clamp(80, 200)),
         curve: Curves.easeOut,
       );
     } else {
@@ -464,9 +448,7 @@ class ConverterScreenState extends State<ConverterScreen>
 
   void _showAddCurrencyPicker() {
     final availableCurrencies = _allCurrencies
-        .where((c) =>
-            !_displayCurrencySymbols.contains(c.symbol) &&
-            c.id != _selectedCurrency?.id)
+        .where((c) => !_displayCurrencySymbols.contains(c.symbol) && c.id != _selectedCurrency?.id)
         .toList();
 
     AddCurrencyModal.show(
@@ -634,13 +616,12 @@ class ConverterScreenState extends State<ConverterScreen>
       builder: (context, child) {
         final animValue = _calculatorAnimation.value;
         // Calculate effective offset including drag
-        final dragProgress = _isDragging
-            ? _dragOffset / (_calculatorHeight.clamp(1, double.infinity))
-            : 0.0;
+        final dragProgress =
+            _isDragging ? _dragOffset / (_calculatorHeight.clamp(1, double.infinity)) : 0.0;
         final effectiveProgress = (animValue - dragProgress).clamp(0.0, 1.0);
 
         if (effectiveProgress <= 0 && !_isDragging) {
-          return _buildBottomBar();
+          return _buildFloatingCalculatorButton();
         }
 
         return Positioned(
@@ -651,11 +632,7 @@ class ConverterScreenState extends State<ConverterScreen>
             onVerticalDragUpdate: _onCalculatorDragUpdate,
             onVerticalDragEnd: _onCalculatorDragEnd,
             child: Transform.translate(
-              offset: Offset(
-                  0,
-                  _isDragging
-                      ? _dragOffset
-                      : (1 - animValue) * _calculatorHeight),
+              offset: Offset(0, _isDragging ? _dragOffset : (1 - animValue) * _calculatorHeight),
               child: Opacity(
                 opacity: effectiveProgress.clamp(0.3, 1.0),
                 child: _MeasureSize(
@@ -679,15 +656,28 @@ class ConverterScreenState extends State<ConverterScreen>
     );
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildFloatingCalculatorButton() {
+    final bottomPadding = DesignTokens.getBottomPadding(context);
+
     return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: BottomBar(
-        appTheme: _appTheme,
-        onAddCurrency: _showAddCurrencyPicker,
-        onShowCalculator: _showCalculator,
+      right: DesignTokens.space,
+      bottom: bottomPadding + DesignTokens.space,
+      child: GestureDetector(
+        onTap: _showCalculator,
+        child: Container(
+          width: DesignTokens.fabSize,
+          height: DesignTokens.fabSize,
+          decoration: BoxDecoration(
+            color: _appTheme.accent,
+            borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+            boxShadow: DesignTokens.elevatedShadow(_appTheme.accent),
+          ),
+          child: Icon(
+            Icons.calculate_rounded,
+            color: _appTheme.textPrimary,
+            size: DesignTokens.iconXXL,
+          ),
+        ),
       ),
     );
   }
@@ -697,9 +687,8 @@ class ConverterScreenState extends State<ConverterScreen>
     final isTablet = mediaQuery.size.shortestSide >= 600;
     final horizontalPadding = isTablet ? 24.0 : 16.0;
     // Dynamic bottom spacing for calculator overlay
-    final bottomSpacing = _calculatorHeight > 0
-        ? _calculatorHeight + 20
-        : (isTablet ? 120.0 : 100.0);
+    final bottomSpacing =
+        _calculatorHeight > 0 ? _calculatorHeight + 20 : (isTablet ? 100.0 : 80.0);
 
     // Pre-calculate conversions to avoid redundant calculations during build
     final conversions = <String, double>{};
@@ -711,8 +700,7 @@ class ConverterScreenState extends State<ConverterScreen>
           _selectedCurrency!,
           currency,
         );
-        exchangeRates[currency.symbol] =
-            _repository.convert(1.0, _selectedCurrency!, currency);
+        exchangeRates[currency.symbol] = _repository.convert(1.0, _selectedCurrency!, currency);
       }
     }
 
@@ -754,8 +742,7 @@ class ConverterScreenState extends State<ConverterScreen>
           sliver: SliverToBoxAdapter(
             child: Column(
               children: [
-                AddCurrencyCard(
-                    appTheme: _appTheme, onTap: _showAddCurrencyPicker),
+                AddCurrencyCard(appTheme: _appTheme, onTap: _showAddCurrencyPicker),
                 const SizedBox(height: 8),
                 PremiumCard(
                   appTheme: _appTheme,

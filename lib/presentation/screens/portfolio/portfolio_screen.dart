@@ -20,8 +20,7 @@ class PortfolioScreen extends StatefulWidget {
   State<PortfolioScreen> createState() => PortfolioScreenState();
 }
 
-class PortfolioScreenState extends State<PortfolioScreen>
-    with SingleTickerProviderStateMixin {
+class PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProviderStateMixin {
   late final PortfolioController _controller;
   final AppTheme _appTheme = getIt<AppTheme>();
   final CurrencySyncService _syncService = getIt<CurrencySyncService>();
@@ -218,6 +217,7 @@ class PortfolioScreenState extends State<PortfolioScreen>
       backgroundColor: _appTheme.background,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
+        bottom: false,
         child: Stack(
           children: [
             AnimatedSwitcher(
@@ -386,8 +386,7 @@ class PortfolioScreenState extends State<PortfolioScreen>
           convertedAmount: convertedAmount,
           appTheme: _appTheme,
           formatAmount: _controller.formatAmount,
-          onAmountChanged: (newAmount) =>
-              _controller.updateEntryAmount(entry.id, newAmount),
+          onAmountChanged: (newAmount) => _controller.updateEntryAmount(entry.id, newAmount),
           onRemove: () => _removeEntry(entry.id),
         );
       },

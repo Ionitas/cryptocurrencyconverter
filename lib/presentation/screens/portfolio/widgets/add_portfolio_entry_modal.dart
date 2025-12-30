@@ -39,8 +39,7 @@ class AddPortfolioEntryModal extends StatefulWidget {
           child: Container(
             decoration: BoxDecoration(
               color: appTheme.surface.withOpacity(0.92),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(
                 color: Colors.white.withOpacity(0.1),
                 width: 1,
@@ -154,10 +153,12 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
     final mediaQuery = MediaQuery.of(context);
     final bottomPadding = mediaQuery.padding.bottom;
     final keyboardHeight = mediaQuery.viewInsets.bottom;
-    final hasKeyboard = keyboardHeight > 0;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: hasKeyboard ? 0 : 0),
+    // Keep the sheet above the keyboard while preserving drag behavior.
+    return AnimatedPadding(
+      padding: EdgeInsets.only(bottom: keyboardHeight),
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
       child: DraggableScrollableSheet(
         initialChildSize: 0.75,
         minChildSize: 0.5,
@@ -183,9 +184,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
                   left: 20,
                   right: 20,
                   top: 12,
-                  bottom: hasKeyboard
-                      ? keyboardHeight + 12
-                      : (bottomPadding > 0 ? bottomPadding : 16),
+                  bottom: bottomPadding > 0 ? bottomPadding : 16,
                 ),
                 child: _buildAddButton(),
               ),
@@ -273,9 +272,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
               height: 2,
               margin: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
-                color: _currentStep >= 1
-                    ? widget.appTheme.primary
-                    : widget.appTheme.background,
+                color: _currentStep >= 1 ? widget.appTheme.primary : widget.appTheme.background,
                 borderRadius: BorderRadius.circular(1),
               ),
             ),
@@ -296,12 +293,9 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color:
-                isActive ? widget.appTheme.primary : widget.appTheme.background,
+            color: isActive ? widget.appTheme.primary : widget.appTheme.background,
             shape: BoxShape.circle,
-            border: isCurrent
-                ? Border.all(color: widget.appTheme.primary, width: 2)
-                : null,
+            border: isCurrent ? Border.all(color: widget.appTheme.primary, width: 2) : null,
           ),
           child: Center(
             child: isActive && !isCurrent
@@ -309,9 +303,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
                 : Text(
                     '${step + 1}',
                     style: TextStyle(
-                      color: isActive
-                          ? Colors.white
-                          : widget.appTheme.textTertiary,
+                      color: isActive ? Colors.white : widget.appTheme.textTertiary,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -322,9 +314,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
         Text(
           label,
           style: TextStyle(
-            color: isActive
-                ? widget.appTheme.textPrimary
-                : widget.appTheme.textTertiary,
+            color: isActive ? widget.appTheme.textPrimary : widget.appTheme.textTertiary,
             fontSize: 13,
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
@@ -360,8 +350,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
             prefixIcon: Icon(Icons.search, color: widget.appTheme.textTertiary),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
-                    icon: Icon(Icons.clear,
-                        color: widget.appTheme.textTertiary, size: 20),
+                    icon: Icon(Icons.clear, color: widget.appTheme.textTertiary, size: 20),
                     onPressed: () {
                       _searchController.clear();
                       _filterCurrencies('');
@@ -369,8 +358,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
                   )
                 : null,
             border: InputBorder.none,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
           onChanged: _filterCurrencies,
         ),
@@ -384,13 +372,11 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off_rounded,
-                size: 56, color: widget.appTheme.textTertiary),
+            Icon(Icons.search_off_rounded, size: 56, color: widget.appTheme.textTertiary),
             const SizedBox(height: 16),
             Text(
               'No currencies found',
-              style:
-                  TextStyle(color: widget.appTheme.textSecondary, fontSize: 16),
+              style: TextStyle(color: widget.appTheme.textSecondary, fontSize: 16),
             ),
           ],
         ),
@@ -399,7 +385,13 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
 
     return ListView.builder(
       controller: scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        // Ensure last rows are not obscured by bottom safe area.
+        bottom:
+            MediaQuery.of(context).padding.bottom > 0 ? MediaQuery.of(context).padding.bottom : 16,
+      ),
       itemCount: _filteredCurrencies.length,
       itemBuilder: (context, index) {
         final currency = _filteredCurrencies[index];
@@ -436,8 +428,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
                   ),
                   Text(
                     currency.name,
-                    style: TextStyle(
-                        color: widget.appTheme.textTertiary, fontSize: 13),
+                    style: TextStyle(color: widget.appTheme.textTertiary, fontSize: 13),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -450,8 +441,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
                 color: widget.appTheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(Icons.chevron_right_rounded,
-                  color: widget.appTheme.primary, size: 20),
+              child: Icon(Icons.chevron_right_rounded, color: widget.appTheme.primary, size: 20),
             ),
           ],
         ),
@@ -485,8 +475,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
         children: [
           Row(
             children: [
-              Icon(Icons.edit_rounded,
-                  color: widget.appTheme.primary, size: 18),
+              Icon(Icons.edit_rounded, color: widget.appTheme.primary, size: 18),
               const SizedBox(width: 8),
               Text(
                 'Amount',
@@ -505,8 +494,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
                 child: TextField(
                   controller: _amountController,
                   focusNode: _amountFocusNode,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   textInputAction: TextInputAction.done,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d.,]')),
@@ -530,8 +518,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: widget.appTheme.surface,
                   borderRadius: BorderRadius.circular(10),
@@ -560,10 +547,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              widget.appTheme.primary,
-              widget.appTheme.primary.withOpacity(0.85)
-            ],
+            colors: [widget.appTheme.primary, widget.appTheme.primary.withOpacity(0.85)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
