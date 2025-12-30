@@ -1,11 +1,19 @@
+import '../../core/config/supabase_config.dart';
 import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
 import '../datasources/crypto_api_datasource.dart';
 import '../datasources/fiat_api_datasource.dart';
 import '../datasources/local_cache_datasource.dart';
+import '../datasources/supabase_datasource.dart';
 
 /// Implementation of CurrencyRepository
+///
+/// Data fetching priority:
+/// 1. Local cache (if valid, < 12 hours old)
+/// 2. Supabase backend (centralized, updated 3-5x/day)
+/// 3. Direct API calls (CoinCap → CoinGecko → fallback)
 class CurrencyRepositoryImpl implements CurrencyRepository {
+  final SupabaseDataSource? supabaseDataSource;
   final CryptoApiDataSource cryptoDataSource;
   final FiatApiDataSource fiatDataSource;
   final LocalCacheDataSource cacheDataSource;
@@ -13,6 +21,7 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
   List<Currency> _currencies = [];
 
   CurrencyRepositoryImpl({
+    this.supabaseDataSource,
     required this.cryptoDataSource,
     required this.fiatDataSource,
     required this.cacheDataSource,
@@ -23,7 +32,7 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
 
   @override
   Future<LoadResult> loadCurrencies({bool forceRefresh = false}) async {
-    // Try to use cache first
+    // Try to use local cache first (fastest)
     if (!forceRefresh && cacheDataSource.isCacheValid()) {
       _currencies = cacheDataSource.getCachedCurrencies();
       if (_currencies.isNotEmpty) {
@@ -36,8 +45,69 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
       }
     }
 
-    // Fetch fresh data
+    // Try Supabase first (centralized backend)
+    if (supabaseDataSource != null && SupabaseConfig.isConfigured) {
+      try {
+        final supabaseResult = await _fetchFromSupabase();
+        if (supabaseResult != null) {
+          return supabaseResult;
+        }
+      } catch (e) {
+        print('Supabase fetch failed: $e');
+        // Continue to fallback APIs
+      }
+    }
+
+    // Fallback to direct API calls
+    return _fetchFromDirectApis();
+  }
+
+  /// Fetches rates from Supabase backend
+  Future<LoadResult?> _fetchFromSupabase() async {
+    if (supabaseDataSource == null) return null;
+
     try {
+      print('Fetching rates from Supabase...');
+      final isPremiumUser = cacheDataSource.isPremium();
+
+      // Fetch all rates from Supabase
+      final allRates = await supabaseDataSource!.fetchAllRates();
+
+      if (allRates.isEmpty) {
+        print('Supabase returned empty rates');
+        return null;
+      }
+
+      // Apply premium limit for crypto
+      final cryptoLimit = isPremiumUser ? 250 : 100;
+      final cryptoRates =
+          allRates.where((c) => c.isCrypto).take(cryptoLimit).toList();
+      final fiatRates = allRates.where((c) => !c.isCrypto).toList();
+
+      _currencies = [...fiatRates, ...cryptoRates];
+
+      if (_currencies.isNotEmpty) {
+        await cacheDataSource.saveCurrencies(_currencies);
+        print('Fetched ${_currencies.length} rates from Supabase');
+        return LoadResult(
+          success: true,
+          fromCache: false,
+          message: 'Fetched from Supabase',
+          currencies: _currencies,
+        );
+      }
+
+      return null;
+    } catch (e) {
+      print('Supabase error: $e');
+      return null;
+    }
+  }
+
+  /// Fallback: Fetches rates directly from external APIs
+  Future<LoadResult> _fetchFromDirectApis() async {
+    try {
+      print('Falling back to direct API calls...');
       final isPremiumUser = cacheDataSource.isPremium();
 
       final results = await Future.wait([
@@ -55,7 +125,7 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
         return LoadResult(
           success: true,
           fromCache: false,
-          message: 'Fetched fresh data',
+          message: 'Fetched from direct APIs',
           currencies: _currencies,
         );
       }

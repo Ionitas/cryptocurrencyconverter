@@ -3,7 +3,7 @@ description: "A new Flutter project."
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 
-version: 1.0.0+6
+version: 1.0.0+9
 
 environment:
   sdk: '>=3.0.0 <5.0.0'
@@ -21,6 +21,9 @@ dependencies:
   # Network
   http: 1.6.0
   
+  # Supabase Backend
+  supabase_flutter: ^2.12.0
+  
   # Local Storage
   shared_preferences: ^2.5.3
   sqflite: ^2.3.0
@@ -30,8 +33,8 @@ dependencies:
   get_it: ^9.2.0
   
   # In-App Purchases
-  purchases_flutter: ^9.10.1
-  purchases_ui_flutter: ^9.10.1
+  purchases_flutter: ^9.10.2
+  purchases_ui_flutter: ^9.10.2
   
   # Utilities
   url_launcher: ^6.2.6

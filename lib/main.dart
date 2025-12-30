@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
+import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/onboarding_service.dart';
@@ -44,6 +46,22 @@ void main() async {
       await windowManager.focus();
       await windowManager.setPreventClose(true);
     });
+  }
+
+  // Initialize Supabase (if configured)
+  if (SupabaseConfig.isConfigured) {
+    try {
+      await Supabase.initialize(
+        url: SupabaseConfig.supabaseUrl,
+        anonKey: SupabaseConfig.supabaseAnonKey,
+      );
+      debugPrint('Supabase initialized successfully');
+    } catch (e) {
+      debugPrint('Failed to initialize Supabase: $e');
+      // App will fall back to direct API calls
+    }
+  } else {
+    debugPrint('Supabase not configured, using direct API calls');
   }
 
   // Setup dependency injection

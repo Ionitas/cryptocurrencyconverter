@@ -86,11 +86,12 @@ APIs / Cache
 dependencies:
   flutter:
     sdk: flutter
-  get_it: ^7.6.0                  # Dependency injection
+  get_it: ^9.2.0                  # Dependency injection
   http: ^1.6.0                    # API calls
+  supabase_flutter: ^2.8.3        # Supabase backend
   shared_preferences: ^2.5.3      # Local caching
   sqflite: ^2.3.0                 # SQLite (optional)
-  window_manager: ^0.4.3          # Desktop window control
+  window_manager: ^0.5.1          # Desktop window control
 ```
 
 ## Removed Dependencies
@@ -101,8 +102,15 @@ dependencies:
 
 ## API Endpoints
 
+### Primary: Supabase Backend (Recommended)
+- **URL**: `https://YOUR_PROJECT.supabase.co/rest/v1/exchange_rates`
+- **Updates**: 3-5 times per day via Edge Function
+- **Coverage**: 250+ cryptocurrencies, 60+ fiat currencies
+- **Benefits**: Reduced API costs, centralized caching, better reliability
+
+### Fallback APIs (Direct)
 1. **CoinCap API** (Primary Crypto)
-   - URL: `https://api.coincap.com/v2/assets`
+   - URL: `https://api.coincap.io/v2/assets`
    - Limit: 100 cryptocurrencies (free)
 
 2. **CoinGecko API** (Fallback Crypto)
@@ -112,6 +120,11 @@ dependencies:
 3. **ExchangeRate API** (Fiat)
    - URL: `https://api.exchangerate-api.com/v4/latest/USD`
    - Coverage: 60+ world currencies
+
+## Data Fetching Priority
+1. **Local Cache** - If valid (< 12 hours old)
+2. **Supabase Backend** - Centralized, updated 3-5x/day
+3. **Direct APIs** - CoinCap → CoinGecko → Hardcoded fallback
 
 ## Cache Strategy
 - **Validity**: 12 hours
