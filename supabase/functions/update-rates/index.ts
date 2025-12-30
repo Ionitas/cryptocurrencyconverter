@@ -315,7 +315,7 @@ async function fetchFiatRates(): Promise<ExchangeRate[]> {
         name: info?.name || code,
         symbol: info?.symbol || code,
         price_usd: 1 / rate, // Convert to USD price
-        change_percent_24h: 0,
+        change_percent_24h: 0, // Will be calculated by comparing with previous rates
         is_crypto: false,
       })
     }
@@ -325,6 +325,54 @@ async function fetchFiatRates(): Promise<ExchangeRate[]> {
     console.error('ExchangeRate API error:', error)
     return []
   }
+}
+
+// Get previous fiat rates from database for 24h change calculation
+async function getPreviousFiatRates(supabase: SupabaseClient): Promise<Map<string, number>> {
+  const ratesMap = new Map<string, number>()
+  
+  try {
+    const { data, error } = await supabase
+      .from('exchange_rates')
+      .select('code, price_usd')
+      .eq('is_crypto', false)
+    
+    if (error) {
+      console.error('Error fetching previous fiat rates:', error)
+      return ratesMap
+    }
+    
+    for (const row of data || []) {
+      ratesMap.set(row.code, parseFloat(row.price_usd) || 0)
+    }
+    
+    console.log(`Retrieved ${ratesMap.size} previous fiat rates for 24h change calculation`)
+  } catch (error) {
+    console.error('Error fetching previous rates:', error)
+  }
+  
+  return ratesMap
+}
+
+// Calculate 24h change for fiat currencies
+function applyFiat24hChange(
+  fiatRates: ExchangeRate[], 
+  previousRates: Map<string, number>
+): ExchangeRate[] {
+  if (previousRates.size === 0) {
+    console.log('No previous rates available, skipping 24h change calculation')
+    return fiatRates
+  }
+  
+  return fiatRates.map(rate => {
+    const previousPrice = previousRates.get(rate.code)
+    if (previousPrice && previousPrice > 0) {
+      // Calculate percentage change: ((new - old) / old) * 100
+      const change = ((rate.price_usd - previousPrice) / previousPrice) * 100
+      return { ...rate, change_percent_24h: change }
+    }
+    return rate
+  })
 }
 
 // ============================================
@@ -381,7 +429,11 @@ Deno.serve(async (req: Request) => {
       console.log('Cache is empty, fetching fresh data')
     }
 
-    // Step 2: Fetch fresh data from APIs concurrently
+    // Step 2: Get previous fiat rates for 24h change calculation
+    console.log('Getting previous fiat rates for 24h change calculation...')
+    const previousFiatRates = await getPreviousFiatRates(supabase)
+
+    // Step 3: Fetch fresh data from APIs concurrently
     console.log('Fetching fresh data from APIs...')
     
     // Fetch crypto and fiat concurrently
@@ -396,7 +448,9 @@ Deno.serve(async (req: Request) => {
 
     const allCrypto = cryptoRates.rates
     const cryptoSource = cryptoRates.source
-    const allFiat = fiatRates
+    
+    // Apply 24h change calculation for fiat currencies
+    const allFiat = applyFiat24hChange(fiatRates, previousFiatRates)
 
     console.log(`Fetched ${allCrypto.length} crypto (${cryptoSource}), ${allFiat.length} fiat`)
 
@@ -404,15 +458,15 @@ Deno.serve(async (req: Request) => {
       throw new Error('No data received from any API')
     }
 
-    // Step 3: Save to database
+    // Step 4: Save to database
     const allRates = [...allCrypto, ...allFiat]
     await saveRates(supabase, allRates)
 
-    // Step 4: Log the fetch
+    // Step 5: Log the fetch
     const durationMs = Date.now() - startTime
     await logFetch(supabase, cryptoSource, allCrypto.length, allFiat.length, durationMs, true)
 
-    // Step 5: Return the data
+    // Step 6: Return the data
     return new Response(
       JSON.stringify({
         success: true,

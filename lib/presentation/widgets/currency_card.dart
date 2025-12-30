@@ -190,6 +190,35 @@ class _CurrencyCardState extends State<CurrencyCard>
                             fontSize: 11,
                           ),
                         ),
+                        // 24h change indicator
+                        if (widget.currency.changePercent24h != 0.0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  widget.currency.changePercent24h >= 0
+                                      ? Icons.arrow_drop_up
+                                      : Icons.arrow_drop_down,
+                                  color: widget.currency.changePercent24h >= 0
+                                      ? Colors.green
+                                      : Colors.red,
+                                  size: 16,
+                                ),
+                                Text(
+                                  '${widget.currency.changePercent24h >= 0 ? '+' : ''}${widget.currency.changePercent24h.toStringAsFixed(2)}%',
+                                  style: TextStyle(
+                                    color: widget.currency.changePercent24h >= 0
+                                        ? Colors.green
+                                        : Colors.red,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ],

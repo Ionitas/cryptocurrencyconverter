@@ -9,6 +9,9 @@ class SettingsDialog extends StatefulWidget {
   final int currencyCount;
   final VoidCallback onForceRefresh;
   final AppTheme appTheme;
+  final String? userCountry;
+  final String? userCountryFlag;
+  final String? userCurrencyCode;
 
   const SettingsDialog({
     super.key,
@@ -18,6 +21,9 @@ class SettingsDialog extends StatefulWidget {
     required this.currencyCount,
     required this.onForceRefresh,
     required this.appTheme,
+    this.userCountry,
+    this.userCountryFlag,
+    this.userCurrencyCode,
   });
 
   static Future<void> show({
@@ -28,6 +34,9 @@ class SettingsDialog extends StatefulWidget {
     required int currencyCount,
     required VoidCallback onForceRefresh,
     required AppTheme appTheme,
+    String? userCountry,
+    String? userCountryFlag,
+    String? userCurrencyCode,
   }) {
     return showDialog(
       context: context,
@@ -38,6 +47,9 @@ class SettingsDialog extends StatefulWidget {
         currencyCount: currencyCount,
         onForceRefresh: onForceRefresh,
         appTheme: appTheme,
+        userCountry: userCountry,
+        userCountryFlag: userCountryFlag,
+        userCurrencyCode: userCurrencyCode,
       ),
     );
   }
@@ -146,6 +158,16 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 const SizedBox(height: 8),
               ],
               _buildInfoRow('Currencies', '${widget.currencyCount}'),
+              // User country section
+              if (widget.userCountry != null) ...[
+                const SizedBox(height: 8),
+                _buildInfoRow('Your Country',
+                    '${widget.userCountryFlag ?? '🌍'} ${widget.userCountry}'),
+                if (widget.userCurrencyCode != null) ...[
+                  const SizedBox(height: 8),
+                  _buildInfoRow('Your Currency', widget.userCurrencyCode!),
+                ],
+              ],
               const SizedBox(height: 24),
               // Theme selector section
               Text(

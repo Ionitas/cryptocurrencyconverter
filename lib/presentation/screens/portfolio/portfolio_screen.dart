@@ -5,6 +5,7 @@ import '../../../domain/repositories/currency_repository.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/currency_sync_service.dart';
+import '../../../core/services/onboarding_service.dart';
 import '../../utils/snackbar_helper.dart';
 import '../../widgets/settings_dialog.dart';
 import 'portfolio_controller.dart';
@@ -24,9 +25,15 @@ class PortfolioScreenState extends State<PortfolioScreen>
   late final PortfolioController _controller;
   final AppTheme _appTheme = getIt<AppTheme>();
   final CurrencySyncService _syncService = getIt<CurrencySyncService>();
+  final OnboardingService _onboardingService = OnboardingService();
 
   StreamSubscription<List<dynamic>>? _currencySubscription;
   late AnimationController _fadeController;
+
+  // User country info
+  String? _userCountry;
+  String? _userCountryFlag;
+  String? _userCurrencyCode;
 
   // Track keyboard visibility
   bool _isKeyboardVisible = false;
@@ -53,6 +60,32 @@ class PortfolioScreenState extends State<PortfolioScreen>
     _controller.loadCurrencies().then((_) {
       _fadeController.forward();
     });
+
+    // Load user country info
+    _loadUserCountryInfo();
+  }
+
+  /// Load user country information from onboarding
+  Future<void> _loadUserCountryInfo() async {
+    final onboardingData = await _onboardingService.loadOnboardingData();
+    if (mounted) {
+      setState(() {
+        _userCountry = onboardingData.country;
+        _userCurrencyCode = onboardingData.currencyCode;
+        if (onboardingData.countryCode != null) {
+          _userCountryFlag = _getFlagEmoji(onboardingData.countryCode!);
+        }
+      });
+    }
+  }
+
+  /// Convert country code to flag emoji
+  String _getFlagEmoji(String countryCode) {
+    final code = countryCode.toUpperCase();
+    if (code.length != 2) return '🌍';
+    final firstLetter = code.codeUnitAt(0) - 0x41 + 0x1F1E6;
+    final secondLetter = code.codeUnitAt(1) - 0x41 + 0x1F1E6;
+    return String.fromCharCode(firstLetter) + String.fromCharCode(secondLetter);
   }
 
   @override
@@ -106,6 +139,9 @@ class PortfolioScreenState extends State<PortfolioScreen>
         _controller.loadCurrencies();
       },
       appTheme: _appTheme,
+      userCountry: _userCountry,
+      userCountryFlag: _userCountryFlag,
+      userCurrencyCode: _userCurrencyCode,
     );
   }
 

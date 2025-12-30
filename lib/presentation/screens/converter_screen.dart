@@ -58,6 +58,8 @@ class ConverterScreenState extends State<ConverterScreen>
 
   // User's country currency
   String? _userCurrencyCode;
+  String? _userCountry;
+  String? _userCountryFlag;
 
   // UI state
   bool _isLoading = true;
@@ -156,6 +158,11 @@ class ConverterScreenState extends State<ConverterScreen>
     // Load user's country from onboarding
     final onboardingData = await _onboardingService.loadOnboardingData();
     _userCurrencyCode = onboardingData.currencyCode;
+    _userCountry = onboardingData.country;
+    // Get flag from country code
+    if (onboardingData.countryCode != null) {
+      _userCountryFlag = _getFlagEmoji(onboardingData.countryCode!);
+    }
 
     // Load saved display currencies if available
     final savedSymbols = await _storageService.loadConverterDisplaySymbols();
@@ -217,6 +224,15 @@ class ConverterScreenState extends State<ConverterScreen>
       currentAmount = savedAmount;
       displayValue = formatCalculatorResult(savedAmount);
     }
+  }
+
+  /// Convert country code to flag emoji
+  String _getFlagEmoji(String countryCode) {
+    final code = countryCode.toUpperCase();
+    if (code.length != 2) return '🌍';
+    final firstLetter = code.codeUnitAt(0) - 0x41 + 0x1F1E6;
+    final secondLetter = code.codeUnitAt(1) - 0x41 + 0x1F1E6;
+    return String.fromCharCode(firstLetter) + String.fromCharCode(secondLetter);
   }
 
   @override
@@ -474,6 +490,9 @@ class ConverterScreenState extends State<ConverterScreen>
       currencyCount: _allCurrencies.length,
       onForceRefresh: () => _loadData(forceRefresh: true),
       appTheme: _appTheme,
+      userCountry: _userCountry,
+      userCountryFlag: _userCountryFlag,
+      userCurrencyCode: _userCurrencyCode,
     );
   }
 
