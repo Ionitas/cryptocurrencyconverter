@@ -8,6 +8,7 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/services/onboarding_service.dart';
 import '../../core/services/portfolio_storage_service.dart';
 import '../../core/services/currency_sync_service.dart';
+import '../../core/services/analytics/logging_system.dart';
 // import '../../subscription/core/subscription_service.dart';
 // import '../../subscription/view/layout_widgets/view/simpleOffer_paywall.dart';
 import '../widgets/widgets.dart';
@@ -39,9 +40,9 @@ class ConverterScreenState extends State<ConverterScreen>
   Currency? _selectedCurrency;
   List<Currency> _displayCurrencies = [];
 
-  // Default currencies - will be updated with user's country currency
-  List<String> _displayCurrencyOrder = ['USD', 'EUR', 'ETH', 'GBP', 'JPY', 'USDT'];
-  Set<String> _displayCurrencySymbols = {'USD', 'EUR', 'ETH', 'GBP', 'JPY', 'USDT'};
+  // Default currencies - BTC, USD and user's country currency
+  List<String> _displayCurrencyOrder = ['BTC', 'USD', 'EUR', 'GBP'];
+  Set<String> _displayCurrencySymbols = {'BTC', 'USD', 'EUR', 'GBP'};
 
   // User's country currency
   String? _userCurrencyCode;
@@ -142,6 +143,8 @@ class ConverterScreenState extends State<ConverterScreen>
 
   /// Load user preferences and then load currency data
   Future<void> _initializeWithUserPreferences() async {
+    AppLogger.i('Converter', 'Initializing with user preferences...');
+
     // Load user's country from onboarding
     final onboardingData = await _onboardingService.loadOnboardingData();
     _userCurrencyCode = onboardingData.currencyCode;
@@ -151,20 +154,46 @@ class ConverterScreenState extends State<ConverterScreen>
       _userCountryFlag = _getFlagEmoji(onboardingData.countryCode!);
     }
 
-    // Load saved display currencies if available
+    AppLogger.d('Converter',
+        'User country: $_userCountry, currency: $_userCurrencyCode');
+
+    // Load saved display currencies FIRST - this is the user's actual state
     final savedSymbols = await _storageService.loadConverterDisplaySymbols();
     final savedOrder = await _storageService.loadConverterDisplayOrder();
 
-    if (savedSymbols != null && savedOrder != null) {
+    AppLogger.d('Converter',
+        'Loaded saved: symbols=${savedSymbols?.length}, order=${savedOrder?.length}');
+
+    if (savedSymbols != null &&
+        savedSymbols.isNotEmpty &&
+        savedOrder != null &&
+        savedOrder.isNotEmpty) {
+      // User has saved state - use it exactly as saved
       _displayCurrencySymbols = savedSymbols;
       _displayCurrencyOrder = savedOrder;
+      AppLogger.s(
+          'Converter', 'Restored saved currencies: $_displayCurrencyOrder');
     } else {
-      // First time or no saved data - use defaults and add user's country currency
-      if (_userCurrencyCode != null && !_displayCurrencySymbols.contains(_userCurrencyCode)) {
+      // First time - create defaults with user's country currency
+      AppLogger.i('Converter', 'No saved state, creating defaults...');
+      _displayCurrencyOrder = ['BTC', 'USD'];
+      _displayCurrencySymbols = {'BTC', 'USD'};
+
+      // Add user's country currency if different from USD
+      if (_userCurrencyCode != null &&
+          _userCurrencyCode != 'USD' &&
+          !_displayCurrencySymbols.contains(_userCurrencyCode)) {
         _displayCurrencySymbols.add(_userCurrencyCode!);
-        // Add at the beginning for prominence
-        _displayCurrencyOrder.insert(0, _userCurrencyCode!);
+        // Add after USD for prominence
+        _displayCurrencyOrder.insert(2, _userCurrencyCode!);
+        AppLogger.i('Converter', 'Added user currency: $_userCurrencyCode');
       }
+
+      // Save these initial defaults
+      await _storageService.saveConverterDisplayCurrencies(
+        symbols: _displayCurrencySymbols,
+        order: _displayCurrencyOrder,
+      );
     }
 
     // Check if sync service already has data (from onboarding)
@@ -235,20 +264,30 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   Future<void> _loadData({bool forceRefresh = false}) async {
+    AppLogger.i(
+        'Converter', '_loadData() called - forceRefresh: $forceRefresh');
+
     setState(() {
       _isLoading = _allCurrencies.isEmpty;
       _statusMessage = forceRefresh ? 'Fetching fresh data...' : 'Loading...';
     });
 
     // Use sync service for data loading
+    final startTime = DateTime.now();
     final result = forceRefresh
         ? await _syncService.syncNow(forceRefresh: true)
         : await _syncService.initialize(isFirstTime: false);
+
+    final duration = DateTime.now().difference(startTime);
 
     if (result.currencies.isNotEmpty) {
       _allCurrencies = result.currencies;
       await _restoreUserSelections();
       _updateDisplayCurrencies();
+      AppLogger.s('Converter',
+          'Loaded ${_allCurrencies.length} currencies in ${duration.inMilliseconds}ms (fromCache: ${result.fromCache})');
+    } else {
+      AppLogger.w('Converter', 'No currencies returned from sync');
     }
 
     setState(() {
@@ -285,15 +324,23 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   void _removeCurrency(Currency currency) {
+    AppLogger.d('Converter', 'Removing currency: ${currency.symbol}');
     setState(() {
       _displayCurrencySymbols.remove(currency.symbol);
       _displayCurrencyOrder.remove(currency.symbol);
       _updateDisplayCurrencies();
     });
-    _saveConverterState();
+    // Fire and forget with error handling
+    _saveConverterState().catchError((e) {
+      AppLogger.e('Converter', 'Failed to save after remove', error: e);
+    });
   }
 
   void _addCurrency(Currency currency) {
+    AppLogger.d('Converter', 'Adding currency: ${currency.symbol}');
+    AppLogger.d('Converter', 'Before add - symbols: $_displayCurrencySymbols');
+    AppLogger.d('Converter', 'Before add - order: $_displayCurrencyOrder');
+
     setState(() {
       _displayCurrencySymbols.add(currency.symbol);
       if (!_displayCurrencyOrder.contains(currency.symbol)) {
@@ -302,7 +349,13 @@ class ConverterScreenState extends State<ConverterScreen>
       _updateDisplayCurrencies();
     });
 
-    _saveConverterState();
+    AppLogger.d('Converter', 'After add - symbols: $_displayCurrencySymbols');
+    AppLogger.d('Converter', 'After add - order: $_displayCurrencyOrder');
+
+    // Fire and forget with error handling
+    _saveConverterState().catchError((e) {
+      AppLogger.e('Converter', 'Failed to save after add', error: e);
+    });
 
     SnackBarHelper.show(
       context: context,
@@ -325,7 +378,9 @@ class ConverterScreenState extends State<ConverterScreen>
         }
       }
     });
-    _saveConverterState();
+    _saveConverterState().catchError((e) {
+      AppLogger.e('Converter', 'Failed to save after reorder', error: e);
+    });
   }
 
   void _swapCurrency(Currency currency, int index) {
@@ -351,7 +406,9 @@ class ConverterScreenState extends State<ConverterScreen>
     });
 
     // Save the new currency and amount
-    _saveConverterState();
+    _saveConverterState().catchError((e) {
+      AppLogger.e('Converter', 'Failed to save after swap', error: e);
+    });
 
     SnackBarHelper.show(
       context: context,
@@ -363,26 +420,35 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   /// Save current converter state to storage
-  void _saveConverterState() {
+  Future<void> _saveConverterState() async {
+    AppLogger.d('Converter',
+        'Saving state: symbols=${_displayCurrencySymbols.length}, order=${_displayCurrencyOrder.length}');
+
     if (_selectedCurrency != null) {
-      _storageService.saveConverterState(
+      await _storageService.saveConverterState(
         amount: currentAmount,
         currencySymbol: _selectedCurrency!.symbol,
       );
     }
-    // Save display currencies
-    _storageService.saveConverterDisplayCurrencies(
+    // Save display currencies - await to ensure it completes
+    await _storageService.saveConverterDisplayCurrencies(
       symbols: _displayCurrencySymbols,
       order: _displayCurrencyOrder,
     );
+
+    AppLogger.s(
+        'Converter', 'State saved: ${_displayCurrencyOrder.join(", ")}');
   }
 
   void _onCalculatorInput(String value) {
     setState(() {
       handleCalculatorInput(value);
     });
-    // Save after calculator input
-    _saveConverterState();
+    // Save after calculator input - don't block, just fire and forget
+    _saveConverterState().catchError((e) {
+      AppLogger.e('Converter', 'Failed to save after calculator input',
+          error: e);
+    });
   }
 
   void _showCalculator() {
@@ -415,7 +481,8 @@ class ConverterScreenState extends State<ConverterScreen>
 
   void _onCalculatorDragEnd(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
-    final progress = _calculatorHeight > 0 ? _dragOffset / _calculatorHeight : 0.0;
+    final progress =
+        _calculatorHeight > 0 ? _dragOffset / _calculatorHeight : 0.0;
 
     // Calculate the current visual position as animation value
     final currentAnimValue = (1.0 - progress).clamp(0.0, 1.0);
@@ -433,7 +500,8 @@ class ConverterScreenState extends State<ConverterScreen>
       // Hide with faster animation when swiped
       _calculatorController.animateTo(
         0.0,
-        duration: Duration(milliseconds: (180 * currentAnimValue).toInt().clamp(80, 200)),
+        duration: Duration(
+            milliseconds: (180 * currentAnimValue).toInt().clamp(80, 200)),
         curve: Curves.easeOut,
       );
     } else {
@@ -448,7 +516,9 @@ class ConverterScreenState extends State<ConverterScreen>
 
   void _showAddCurrencyPicker() {
     final availableCurrencies = _allCurrencies
-        .where((c) => !_displayCurrencySymbols.contains(c.symbol) && c.id != _selectedCurrency?.id)
+        .where((c) =>
+            !_displayCurrencySymbols.contains(c.symbol) &&
+            c.id != _selectedCurrency?.id)
         .toList();
 
     AddCurrencyModal.show(
@@ -571,8 +641,15 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   // Public methods accessible via GlobalKey
-  void refreshData() => _loadData(forceRefresh: true);
-  void showSettings() => _showSettings();
+  void refreshData() {
+    AppLogger.buttonTap('refreshData (Converter)');
+    _loadData(forceRefresh: true);
+  }
+
+  void showSettings() {
+    AppLogger.buttonTap('showSettings (Converter)');
+    _showSettings();
+  }
 
   Widget _buildMainContent() {
     return Stack(
@@ -616,8 +693,9 @@ class ConverterScreenState extends State<ConverterScreen>
       builder: (context, child) {
         final animValue = _calculatorAnimation.value;
         // Calculate effective offset including drag
-        final dragProgress =
-            _isDragging ? _dragOffset / (_calculatorHeight.clamp(1, double.infinity)) : 0.0;
+        final dragProgress = _isDragging
+            ? _dragOffset / (_calculatorHeight.clamp(1, double.infinity))
+            : 0.0;
         final effectiveProgress = (animValue - dragProgress).clamp(0.0, 1.0);
 
         if (effectiveProgress <= 0 && !_isDragging) {
@@ -632,7 +710,11 @@ class ConverterScreenState extends State<ConverterScreen>
             onVerticalDragUpdate: _onCalculatorDragUpdate,
             onVerticalDragEnd: _onCalculatorDragEnd,
             child: Transform.translate(
-              offset: Offset(0, _isDragging ? _dragOffset : (1 - animValue) * _calculatorHeight),
+              offset: Offset(
+                  0,
+                  _isDragging
+                      ? _dragOffset
+                      : (1 - animValue) * _calculatorHeight),
               child: Opacity(
                 opacity: effectiveProgress.clamp(0.3, 1.0),
                 child: _MeasureSize(
@@ -687,8 +769,9 @@ class ConverterScreenState extends State<ConverterScreen>
     final isTablet = mediaQuery.size.shortestSide >= 600;
     final horizontalPadding = isTablet ? 24.0 : 16.0;
     // Dynamic bottom spacing for calculator overlay
-    final bottomSpacing =
-        _calculatorHeight > 0 ? _calculatorHeight + 20 : (isTablet ? 100.0 : 80.0);
+    final bottomSpacing = _calculatorHeight > 0
+        ? _calculatorHeight + 20
+        : (isTablet ? 100.0 : 80.0);
 
     // Pre-calculate conversions to avoid redundant calculations during build
     final conversions = <String, double>{};
@@ -700,7 +783,8 @@ class ConverterScreenState extends State<ConverterScreen>
           _selectedCurrency!,
           currency,
         );
-        exchangeRates[currency.symbol] = _repository.convert(1.0, _selectedCurrency!, currency);
+        exchangeRates[currency.symbol] =
+            _repository.convert(1.0, _selectedCurrency!, currency);
       }
     }
 
@@ -742,7 +826,8 @@ class ConverterScreenState extends State<ConverterScreen>
           sliver: SliverToBoxAdapter(
             child: Column(
               children: [
-                AddCurrencyCard(appTheme: _appTheme, onTap: _showAddCurrencyPicker),
+                AddCurrencyCard(
+                    appTheme: _appTheme, onTap: _showAddCurrencyPicker),
                 const SizedBox(height: 8),
                 PremiumCard(
                   appTheme: _appTheme,

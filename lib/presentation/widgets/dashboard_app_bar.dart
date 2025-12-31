@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/analytics/logging_system.dart';
 
 /// Reusable dashboard app bar with tab switcher and action buttons
 class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -54,6 +55,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: Icon(Icons.refresh, color: appTheme.textPrimary),
           onPressed: () {
+            AppLogger.buttonTap('Refresh');
             HapticFeedback.lightImpact();
             onRefresh();
           },
@@ -62,6 +64,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: Icon(Icons.settings, color: appTheme.textPrimary),
           onPressed: () {
+            AppLogger.buttonTap('Settings');
             HapticFeedback.lightImpact();
             onSettings();
           },

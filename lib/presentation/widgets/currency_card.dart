@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../domain/models/currency.dart';
 import 'currency_icon.dart';
 
@@ -108,38 +109,36 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
         child: AnimatedBuilder(
           animation: _scaleAnimation,
           builder: (context, child) {
+            final isTablet = DesignTokens.isTablet(context);
             return Transform.scale(
               scale: _scaleAnimation.value,
               child: Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(14),
+                margin: EdgeInsets.only(bottom: DesignTokens.cardMarginBottom),
+                padding:
+                    EdgeInsets.all(isTablet ? DesignTokens.space : DesignTokens.buttonPaddingV),
                 decoration: BoxDecoration(
                   color: widget.appTheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+                  boxShadow: DesignTokens.cardShadow(Colors.black),
                 ),
                 child: Row(
                   children: [
                     ReorderableDragStartListener(
                       index: widget.index,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
+                      child: Padding(
+                        padding: EdgeInsets.all(DesignTokens.spaceXS),
                         child: Icon(
                           Icons.drag_indicator,
                           color: widget.appTheme.primaryLight,
-                          size: 20,
+                          size: DesignTokens.icon,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    CurrencyIcon(currency: widget.currency),
-                    const SizedBox(width: 12),
+                    SizedBox(width: DesignTokens.spaceS),
+                    CurrencyIcon(
+                        currency: widget.currency,
+                        size: isTablet ? DesignTokens.currencyIconL : DesignTokens.currencyIcon),
+                    SizedBox(width: DesignTokens.spaceM),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,7 +147,7 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
                             widget.currency.symbol,
                             style: TextStyle(
                               color: widget.appTheme.textPrimary,
-                              fontSize: 16,
+                              fontSize: isTablet ? DesignTokens.textL : DesignTokens.text,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -156,7 +155,7 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
                             widget.currency.name,
                             style: TextStyle(
                               color: widget.appTheme.textTertiary,
-                              fontSize: 13,
+                              fontSize: isTablet ? DesignTokens.textBody : DesignTokens.textBodyS,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -170,7 +169,7 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
                           widget.formatAmount(widget.convertedAmount),
                           style: TextStyle(
                             color: widget.appTheme.textPrimary,
-                            fontSize: 18,
+                            fontSize: isTablet ? DesignTokens.textTitle : DesignTokens.textL,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -178,13 +177,13 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
                           '1 ${widget.selectedCurrency.symbol} = ${widget.formatAmount(widget.exchangeRate)} ${widget.currency.symbol}',
                           style: TextStyle(
                             color: widget.appTheme.textTertiary,
-                            fontSize: 11,
+                            fontSize: isTablet ? DesignTokens.textCaption : DesignTokens.textS,
                           ),
                         ),
                         // 24h change indicator
                         if (widget.currency.changePercent24h != 0.0)
                           Padding(
-                            padding: const EdgeInsets.only(top: 2),
+                            padding: EdgeInsets.only(top: DesignTokens.spaceXS / 2),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -195,7 +194,7 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
                                   color: widget.currency.changePercent24h >= 0
                                       ? widget.appTheme.success
                                       : widget.appTheme.error,
-                                  size: 16,
+                                  size: DesignTokens.iconS,
                                 ),
                                 Text(
                                   '${widget.currency.changePercent24h >= 0 ? '+' : ''}${widget.currency.changePercent24h.toStringAsFixed(2)}%',
@@ -203,7 +202,7 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
                                     color: widget.currency.changePercent24h >= 0
                                         ? widget.appTheme.success
                                         : widget.appTheme.error,
-                                    fontSize: 10,
+                                    fontSize: DesignTokens.textXS,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/config/supabase_config.dart';
+import '../../core/services/analytics/logging_system.dart';
 import '../../domain/models/currency.dart';
 
 /// Data source for fetching exchange rates from Supabase
@@ -9,6 +10,7 @@ import '../../domain/models/currency.dart';
 /// periodically (3-5 times per day).
 class SupabaseDataSource {
   final SupabaseClient _client;
+  static const String _tag = 'Supabase';
 
   SupabaseDataSource(this._client);
 
@@ -23,9 +25,12 @@ class SupabaseDataSource {
   /// Fetches all exchange rates (crypto + fiat) from Supabase
   Future<List<Currency>> fetchAllRates() async {
     if (!isConfigured) {
-      throw Exception(
-          'Supabase is not configured. Please update supabase_config.dart');
+      AppLogger.e(_tag, 'Not configured - check supabase_config.dart');
+      throw Exception('Supabase is not configured. Please update supabase_config.dart');
     }
+
+    AppLogger.networkRequest('${SupabaseConfig.exchangeRatesTable} (all rates)');
+    final startTime = DateTime.now();
 
     try {
       final response = await _client
@@ -35,9 +40,15 @@ class SupabaseDataSource {
           .order('rank', ascending: true, nullsFirst: false)
           .order('code', ascending: true);
 
-      return _parseRates(response);
+      final duration = DateTime.now().difference(startTime);
+      final rates = _parseRates(response);
+      AppLogger.networkResponse('${SupabaseConfig.exchangeRatesTable}', 200, duration);
+      AppLogger.s(_tag, 'Fetched ${rates.length} rates in ${duration.inMilliseconds}ms');
+      return rates;
     } catch (e) {
-      print('Supabase fetchAllRates error: $e');
+      final duration = DateTime.now().difference(startTime);
+      AppLogger.networkResponse('${SupabaseConfig.exchangeRatesTable}', 500, duration);
+      AppLogger.e(_tag, 'fetchAllRates failed', error: e);
       rethrow;
     }
   }
@@ -47,6 +58,9 @@ class SupabaseDataSource {
     if (!isConfigured) {
       throw Exception('Supabase is not configured');
     }
+
+    AppLogger.networkRequest('${SupabaseConfig.exchangeRatesTable} (crypto only, limit: $limit)');
+    final startTime = DateTime.now();
 
     try {
       var query = _client
@@ -60,9 +74,12 @@ class SupabaseDataSource {
       }
 
       final response = await query;
-      return _parseRates(response);
+      final duration = DateTime.now().difference(startTime);
+      final rates = _parseRates(response);
+      AppLogger.networkResponse('${SupabaseConfig.exchangeRatesTable} (crypto)', 200, duration);
+      return rates;
     } catch (e) {
-      print('Supabase fetchCryptoRates error: $e');
+      AppLogger.e(_tag, 'fetchCryptoRates failed', error: e);
       rethrow;
     }
   }
@@ -73,6 +90,9 @@ class SupabaseDataSource {
       throw Exception('Supabase is not configured');
     }
 
+    AppLogger.networkRequest('${SupabaseConfig.exchangeRatesTable} (fiat only)');
+    final startTime = DateTime.now();
+
     try {
       final response = await _client
           .from(SupabaseConfig.exchangeRatesTable)
@@ -80,9 +100,12 @@ class SupabaseDataSource {
           .eq('is_crypto', false)
           .order('code', ascending: true);
 
-      return _parseRates(response);
+      final duration = DateTime.now().difference(startTime);
+      final rates = _parseRates(response);
+      AppLogger.networkResponse('${SupabaseConfig.exchangeRatesTable} (fiat)', 200, duration);
+      return rates;
     } catch (e) {
-      print('Supabase fetchFiatRates error: $e');
+      AppLogger.e(_tag, 'fetchFiatRates failed', error: e);
       rethrow;
     }
   }
@@ -90,6 +113,8 @@ class SupabaseDataSource {
   /// Gets the last update timestamp from Supabase
   Future<DateTime?> getLastUpdateTime() async {
     if (!isConfigured) return null;
+
+    AppLogger.d(_tag, 'Fetching last update time...');
 
     try {
       final response = await _client
@@ -102,12 +127,15 @@ class SupabaseDataSource {
         final value = response['value'] as Map<String, dynamic>;
         final timestamp = value['timestamp'] as String?;
         if (timestamp != null) {
-          return DateTime.parse(timestamp);
+          final dt = DateTime.parse(timestamp);
+          AppLogger.d(_tag, 'Last update: $timestamp');
+          return dt;
         }
       }
+      AppLogger.d(_tag, 'No last update time found');
       return null;
     } catch (e) {
-      print('Supabase getLastUpdateTime error: $e');
+      AppLogger.e(_tag, 'getLastUpdateTime failed', error: e);
       return null;
     }
   }
@@ -117,14 +145,13 @@ class SupabaseDataSource {
     if (!isConfigured) return null;
 
     try {
-      final response = await _client
-          .from(SupabaseConfig.lastUpdateStatusView)
-          .select()
-          .maybeSingle();
+      final response =
+          await _client.from(SupabaseConfig.lastUpdateStatusView).select().maybeSingle();
 
+      AppLogger.d(_tag, 'Update status: $response');
       return response;
     } catch (e) {
-      print('Supabase getUpdateStatus error: $e');
+      AppLogger.e(_tag, 'getUpdateStatus failed', error: e);
       return null;
     }
   }
@@ -141,9 +168,8 @@ class SupabaseDataSource {
         priceUsd: _parseDouble(data['price_usd']),
         changePercent24h: _parseDouble(data['change_percent_24h']),
         isCrypto: data['is_crypto'] ?? false,
-        lastUpdated: data['updated_at'] != null
-            ? DateTime.tryParse(data['updated_at'].toString())
-            : null,
+        lastUpdated:
+            data['updated_at'] != null ? DateTime.tryParse(data['updated_at'].toString()) : null,
       );
     }).toList();
   }

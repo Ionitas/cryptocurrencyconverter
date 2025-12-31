@@ -5,8 +5,7 @@ class AppConstants {
   // API Endpoints
   static const String coinCapBaseUrl = 'https://api.coincap.io/v2';
   static const String coinGeckoBaseUrl = 'https://api.coingecko.com/api/v3';
-  static const String exchangeRateBaseUrl =
-      'https://api.exchangerate-api.com/v4/latest';
+  static const String exchangeRateBaseUrl = 'https://api.exchangerate-api.com/v4/latest';
 
   // Cache Settings
   static const int cacheValidityHours = 12;
@@ -15,13 +14,10 @@ class AppConstants {
   static const int freeCryptoLimit = 100;
   static const int premiumCryptoLimit = 250;
 
-  // Default Display Currencies
+  // Default Display Currencies (BTC is selected, these are in the list)
   static const List<String> defaultDisplayCurrencies = [
     'USD',
     'EUR',
-    'ETH',
     'GBP',
-    'JPY',
-    'USDT'
   ];
 }

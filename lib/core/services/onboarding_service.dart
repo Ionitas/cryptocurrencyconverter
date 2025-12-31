@@ -86,6 +86,29 @@ class OnboardingData {
     'NG': 'NGN',
     'PK': 'PKR',
     'BD': 'BDT',
+    // Central Asia
+    'KZ': 'KZT',
+    'UZ': 'UZS',
+    'KG': 'KGS',
+    'TJ': 'TJS',
+    'TM': 'TMT',
+    // More countries
+    'BY': 'BYN',
+    'GE': 'GEL',
+    'AM': 'AMD',
+    'AZ': 'AZN',
+    'MD': 'MDL',
+    'RS': 'RSD',
+    'HR': 'HRK',
+    'BG': 'BGN',
+    'LT': 'EUR',
+    'LV': 'EUR',
+    'EE': 'EUR',
+    'SK': 'EUR',
+    'SI': 'EUR',
+    'CY': 'EUR',
+    'MT': 'EUR',
+    'LU': 'EUR',
   };
 }
 

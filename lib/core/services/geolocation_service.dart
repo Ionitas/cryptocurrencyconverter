@@ -74,9 +74,8 @@ class GeoLocationService {
   Future<CountryInfo?> detectCountryFromIP() async {
     try {
       // Using ip-api.com (free, no API key required)
-      final response = await http
-          .get(Uri.parse('http://ip-api.com/json'))
-          .timeout(const Duration(seconds: 5));
+      final response =
+          await http.get(Uri.parse('http://ip-api.com/json')).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -130,8 +129,7 @@ class GeoLocationService {
 
     final lowerQuery = query.toLowerCase();
     return popularCountries.where((c) {
-      return c.name.toLowerCase().contains(lowerQuery) ||
-          c.code.toLowerCase().contains(lowerQuery);
+      return c.name.toLowerCase().contains(lowerQuery) || c.code.toLowerCase().contains(lowerQuery);
     }).toList();
   }
 }

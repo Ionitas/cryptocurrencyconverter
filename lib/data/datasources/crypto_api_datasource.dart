@@ -8,9 +8,7 @@ class CryptoApiDataSource {
   /// Fetches cryptocurrencies from CoinCap or CoinGecko APIs
   /// Falls back to hardcoded data if both APIs fail
   Future<List<Currency>> fetchCryptocurrencies({bool isPremium = false}) async {
-    final limit = isPremium
-        ? AppConstants.premiumCryptoLimit
-        : AppConstants.freeCryptoLimit;
+    final limit = isPremium ? AppConstants.premiumCryptoLimit : AppConstants.freeCryptoLimit;
 
     // Try CoinCap first
     final coinCapResult = await _fetchFromCoinCap(limit);
@@ -49,8 +47,7 @@ class CryptoApiDataSource {
           '?vs_currency=usd&order=market_cap_desc&per_page=$limit'
           '&page=1&sparkline=false&price_change_percentage=24h';
 
-      final response =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final List<dynamic> coins = json.decode(response.body);
@@ -61,8 +58,7 @@ class CryptoApiDataSource {
                   symbol: (coin['symbol'] ?? '').toString().toUpperCase(),
                   name: coin['name'] ?? '',
                   priceUsd: (coin['current_price'] ?? 0).toDouble(),
-                  changePercent24h:
-                      (coin['price_change_percentage_24h'] ?? 0).toDouble(),
+                  changePercent24h: (coin['price_change_percentage_24h'] ?? 0).toDouble(),
                   isCrypto: true,
                   lastUpdated: DateTime.now(),
                 ))

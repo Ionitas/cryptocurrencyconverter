@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/di/injection.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/analytics/logging_system.dart';
 import '../widgets/dashboard_app_bar.dart';
 import '../controllers/dashboard_controller.dart';
 import 'converter_screen.dart';
@@ -47,6 +48,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _handleRefresh() {
+    final screen = _controller.currentIndex == 0 ? 'Converter' : 'Portfolio';
+    AppLogger.i('Dashboard', 'Refresh requested for $screen');
+
     if (_controller.currentIndex == 0) {
       _converterKey.currentState?.refreshData();
     } else {
@@ -55,6 +59,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _handleSettings() {
+    final screen = _controller.currentIndex == 0 ? 'Converter' : 'Portfolio';
+    AppLogger.i('Dashboard', 'Settings requested for $screen');
+
     if (_controller.currentIndex == 0) {
       _converterKey.currentState?.showSettings();
     } else {

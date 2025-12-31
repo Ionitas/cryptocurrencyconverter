@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/analytics/logging_system.dart';
 
 /// Settings dialog showing data status and options
 class SettingsDialog extends StatefulWidget {
@@ -207,6 +208,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
       actions: [
         TextButton(
           onPressed: () {
+            AppLogger.buttonTap('Force Refresh (Settings)');
             Navigator.pop(context);
             widget.onForceRefresh();
           },

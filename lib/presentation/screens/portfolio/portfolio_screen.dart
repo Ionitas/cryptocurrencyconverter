@@ -6,6 +6,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/currency_sync_service.dart';
 import '../../../core/services/onboarding_service.dart';
+import '../../../core/services/analytics/logging_system.dart';
 import '../../utils/snackbar_helper.dart';
 import '../../widgets/settings_dialog.dart';
 import 'portfolio_controller.dart';
@@ -107,7 +108,15 @@ class PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProvi
 
   // Public methods accessible via GlobalKey
   void refreshData() {
-    _syncService.syncNow(forceRefresh: true).then((_) {
+    AppLogger.buttonTap('refreshData (Portfolio)');
+    AppLogger.i('Portfolio', 'Starting force refresh...');
+    final startTime = DateTime.now();
+
+    _syncService.syncNow(forceRefresh: true).then((result) {
+      final duration = DateTime.now().difference(startTime);
+      AppLogger.s('Portfolio',
+          'Refresh complete in ${duration.inMilliseconds}ms - ${result.currencies.length} currencies, fromCache: ${result.fromCache}');
+
       _controller.loadCurrencies();
       if (mounted) {
         SnackBarHelper.show(
@@ -118,10 +127,13 @@ class PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProvi
           duration: const Duration(seconds: 1),
         );
       }
+    }).catchError((error) {
+      AppLogger.e('Portfolio', 'Refresh failed', error: error);
     });
   }
 
   void showSettings() async {
+    AppLogger.buttonTap('showSettings (Portfolio)');
     final lastUpdate = await _controller.repository.getLastUpdateTime();
     final nextUpdate = _controller.repository.getNextUpdateTime();
 

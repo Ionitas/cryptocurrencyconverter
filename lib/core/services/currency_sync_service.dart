@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
+import '../services/analytics/logging_system.dart';
 
 /// Enum representing the sync state of currency data
 enum SyncState {
@@ -34,8 +35,7 @@ class CurrencySyncService extends ChangeNotifier {
   final CurrencyRepository _repository;
 
   // Stream controller for currency updates
-  final _currencyStreamController =
-      StreamController<List<Currency>>.broadcast();
+  final _currencyStreamController = StreamController<List<Currency>>.broadcast();
   final _syncStateController = StreamController<SyncState>.broadcast();
 
   // State
@@ -64,8 +64,11 @@ class CurrencySyncService extends ChangeNotifier {
   /// Initialize service - called on app start
   /// Returns cached data immediately, then syncs in background
   Future<SyncResult> initialize({bool isFirstTime = false}) async {
+    AppLogger.i('SyncService', 'initialize() called - isFirstTime: $isFirstTime');
+
     if (isFirstTime) {
       // First time: fetch fresh data (during onboarding)
+      AppLogger.i('SyncService', 'First time setup - fetching fresh data');
       return await syncNow(forceRefresh: true);
     }
 
@@ -73,7 +76,10 @@ class CurrencySyncService extends ChangeNotifier {
     _updateSyncState(SyncState.syncing);
 
     // Load cached data immediately
+    AppLogger.i('SyncService', 'Loading from cache first...');
+    final startTime = DateTime.now();
     final cachedResult = await _repository.loadCurrencies(forceRefresh: false);
+    final loadTime = DateTime.now().difference(startTime);
 
     if (cachedResult.currencies.isNotEmpty) {
       _currencies = cachedResult.currencies;
@@ -83,10 +89,14 @@ class CurrencySyncService extends ChangeNotifier {
       _lastSyncMessage = cachedResult.message;
       notifyListeners();
 
+      AppLogger.s('SyncService',
+          'Loaded ${_currencies.length} currencies from ${cachedResult.fromCache ? "cache" : "network"} in ${loadTime.inMilliseconds}ms');
+
       // If data is from cache, sync in background
       if (cachedResult.fromCache) {
         _updateSyncState(SyncState.synced);
         // Start background sync after a short delay
+        AppLogger.i('SyncService', 'Scheduling background sync in 500ms...');
         Future.delayed(const Duration(milliseconds: 500), () {
           _syncInBackground();
         });
@@ -107,16 +117,18 @@ class CurrencySyncService extends ChangeNotifier {
     }
 
     // No cached data, fetch fresh
+    AppLogger.w('SyncService', 'No cached data found, fetching fresh...');
     return await syncNow(forceRefresh: true);
   }
 
   /// Force sync now
   Future<SyncResult> syncNow({bool forceRefresh = false}) async {
+    AppLogger.syncStart(forceRefresh ? 'Network (forced)' : 'Repository');
+    final startTime = DateTime.now();
     _updateSyncState(SyncState.syncing);
 
     try {
-      final result =
-          await _repository.loadCurrencies(forceRefresh: forceRefresh);
+      final result = await _repository.loadCurrencies(forceRefresh: forceRefresh);
 
       if (result.currencies.isNotEmpty) {
         _currencies = result.currencies;
@@ -127,6 +139,13 @@ class CurrencySyncService extends ChangeNotifier {
         _updateSyncState(SyncState.synced);
         notifyListeners();
 
+        final duration = DateTime.now().difference(startTime);
+        AppLogger.syncComplete(
+          result.fromCache ? 'Cache' : 'Network',
+          _currencies.length,
+          duration,
+        );
+
         return SyncResult(
           success: true,
           fromCache: result.fromCache,
@@ -136,6 +155,7 @@ class CurrencySyncService extends ChangeNotifier {
         );
       }
 
+      AppLogger.w('SyncService', 'Sync returned empty data');
       _updateSyncState(SyncState.error);
       return SyncResult(
         success: false,
@@ -143,7 +163,9 @@ class CurrencySyncService extends ChangeNotifier {
         message: 'No data available',
         currencies: [],
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      AppLogger.syncFailed('Repository', e);
+      AppLogger.e('SyncService', 'Sync exception', error: e, stackTrace: stackTrace);
       _updateSyncState(SyncState.error);
       return SyncResult(
         success: false,
@@ -156,7 +178,13 @@ class CurrencySyncService extends ChangeNotifier {
 
   /// Background sync (non-blocking)
   Future<void> _syncInBackground() async {
-    if (_syncState == SyncState.syncing) return;
+    if (_syncState == SyncState.syncing) {
+      AppLogger.d('SyncService', 'Background sync skipped - already syncing');
+      return;
+    }
+
+    AppLogger.background('BackgroundSync', 'Starting...');
+    final startTime = DateTime.now();
 
     try {
       final result = await _repository.loadCurrencies(forceRefresh: true);
@@ -167,27 +195,38 @@ class CurrencySyncService extends ChangeNotifier {
         _lastSyncFromCache = false;
         _lastSyncMessage = 'Updated in background';
         notifyListeners();
+
+        final duration = DateTime.now().difference(startTime);
+        AppLogger.background('BackgroundSync',
+            'Completed - ${_currencies.length} currencies in ${duration.inMilliseconds}ms');
+      } else {
+        AppLogger.background('BackgroundSync', 'No new data (from cache or empty)');
       }
     } catch (e) {
-      debugPrint('Background sync failed: $e');
+      AppLogger.e('SyncService', 'Background sync failed', error: e);
     }
   }
 
   /// Start periodic background sync
   void _startBackgroundSync() {
     _backgroundSyncTimer?.cancel();
+    AppLogger.i('SyncService',
+        'Starting periodic background sync every ${_backgroundSyncInterval.inMinutes} minutes');
     _backgroundSyncTimer = Timer.periodic(_backgroundSyncInterval, (_) {
+      AppLogger.background('PeriodicSync', 'Timer triggered');
       _syncInBackground();
     });
   }
 
   /// Stop background sync
   void stopBackgroundSync() {
+    AppLogger.i('SyncService', 'Stopping background sync');
     _backgroundSyncTimer?.cancel();
     _backgroundSyncTimer = null;
   }
 
   void _updateSyncState(SyncState state) {
+    AppLogger.d('SyncService', 'State changed: $_syncState → $state');
     _syncState = state;
     _syncStateController.add(state);
     notifyListeners();

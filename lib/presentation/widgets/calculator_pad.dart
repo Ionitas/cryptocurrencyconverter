@@ -34,36 +34,11 @@ class _CalculatorPadState extends State<CalculatorPad> {
   ];
 
   static const List<List<_ButtonType>> _buttonTypes = [
-    [
-      _ButtonType.function,
-      _ButtonType.function,
-      _ButtonType.function,
-      _ButtonType.operation
-    ],
-    [
-      _ButtonType.number,
-      _ButtonType.number,
-      _ButtonType.number,
-      _ButtonType.operation
-    ],
-    [
-      _ButtonType.number,
-      _ButtonType.number,
-      _ButtonType.number,
-      _ButtonType.operation
-    ],
-    [
-      _ButtonType.number,
-      _ButtonType.number,
-      _ButtonType.number,
-      _ButtonType.operation
-    ],
-    [
-      _ButtonType.hide,
-      _ButtonType.number,
-      _ButtonType.number,
-      _ButtonType.equals
-    ],
+    [_ButtonType.function, _ButtonType.function, _ButtonType.function, _ButtonType.operation],
+    [_ButtonType.number, _ButtonType.number, _ButtonType.number, _ButtonType.operation],
+    [_ButtonType.number, _ButtonType.number, _ButtonType.number, _ButtonType.operation],
+    [_ButtonType.number, _ButtonType.number, _ButtonType.number, _ButtonType.operation],
+    [_ButtonType.hide, _ButtonType.number, _ButtonType.number, _ButtonType.equals],
   ];
 
   @override
@@ -71,17 +46,14 @@ class _CalculatorPadState extends State<CalculatorPad> {
     final bottomPadding = DesignTokens.getBottomPadding(context);
     final isTablet = DesignTokens.isTablet(context);
     final buttonPadding = isTablet ? DesignTokens.space : DesignTokens.spaceM;
-    final buttonSpacing =
-        isTablet ? DesignTokens.radiusS : DesignTokens.spaceS - 2;
+    final buttonSpacing = isTablet ? DesignTokens.radiusS : DesignTokens.spaceS - 2;
     final fontSize = isTablet ? DesignTokens.textHeadline : DesignTokens.textL;
     final equalsFontSize = isTablet ? 26.0 : DesignTokens.textHeadline;
 
     return ClipRRect(
-      borderRadius:
-          BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(
-            sigmaX: DesignTokens.blurHeavy, sigmaY: DesignTokens.blurHeavy),
+        filter: ImageFilter.blur(sigmaX: DesignTokens.blurHeavy, sigmaY: DesignTokens.blurHeavy),
         child: Container(
           padding: EdgeInsets.only(
             left: DesignTokens.spaceM,
@@ -90,21 +62,17 @@ class _CalculatorPadState extends State<CalculatorPad> {
             bottom: bottomPadding,
           ),
           decoration: BoxDecoration(
-            color: widget.appTheme.surface
-                .withOpacity(DesignTokens.opacityVeryHigh),
-            borderRadius: BorderRadius.vertical(
-                top: Radius.circular(DesignTokens.radiusXXL)),
+            color: widget.appTheme.surface.withOpacity(DesignTokens.opacityVeryHigh),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
             border: Border(
               top: BorderSide(
-                color:
-                    Colors.white.withOpacity(DesignTokens.opacityMediumLight),
+                color: Colors.white.withOpacity(DesignTokens.opacityMediumLight),
                 width: DesignTokens.borderThin,
               ),
             ),
             boxShadow: [
               BoxShadow(
-                color:
-                    Colors.black.withOpacity(DesignTokens.shadowOpacityHeavy),
+                color: Colors.black.withOpacity(DesignTokens.shadowOpacityHeavy),
                 blurRadius: DesignTokens.blurVeryHeavy,
                 offset: const Offset(0, -8),
               ),
@@ -119,8 +87,7 @@ class _CalculatorPadState extends State<CalculatorPad> {
                 height: DesignTokens.dragHandleHeight,
                 margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: widget.appTheme.primaryLight
-                      .withOpacity(DesignTokens.opacityVeryHeavy),
+                  color: widget.appTheme.primaryLight.withOpacity(DesignTokens.opacityVeryHeavy),
                   borderRadius: BorderRadius.circular(DesignTokens.spaceXS / 2),
                 ),
               ),
@@ -130,8 +97,7 @@ class _CalculatorPadState extends State<CalculatorPad> {
                   mainAxisSize: MainAxisSize.min,
                   children: List.generate(5, (rowIndex) {
                     return Padding(
-                      padding: EdgeInsets.only(
-                          bottom: rowIndex < 4 ? buttonSpacing : 0),
+                      padding: EdgeInsets.only(bottom: rowIndex < 4 ? buttonSpacing : 0),
                       child: _CalculatorRow(
                         values: _buttonValues[rowIndex],
                         types: _buttonTypes[rowIndex],
@@ -221,8 +187,7 @@ class _CalculatorButton extends StatefulWidget {
   State<_CalculatorButton> createState() => _CalculatorButtonState();
 }
 
-class _CalculatorButtonState extends State<_CalculatorButton>
-    with SingleTickerProviderStateMixin {
+class _CalculatorButtonState extends State<_CalculatorButton> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -341,9 +306,7 @@ class _CalculatorButtonState extends State<_CalculatorButton>
       widget.value,
       style: TextStyle(
         color: _textColor,
-        fontSize: widget.type == _ButtonType.equals
-            ? widget.equalsFontSize
-            : widget.fontSize,
+        fontSize: widget.type == _ButtonType.equals ? widget.equalsFontSize : widget.fontSize,
         fontWeight: FontWeight.w600,
       ),
     );
