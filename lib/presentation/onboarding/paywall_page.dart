@@ -220,107 +220,111 @@ class _PaywallPageState extends State<PaywallPage>
           ),
         ),
 
-        // Scrollable content
+        // Scrollable content with visible scrollbar
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 4),
+          child: Scrollbar(
+            thumbVisibility: true,
+            radius: const Radius.circular(4),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 4),
 
-                // App icon
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: appTheme.primary.withOpacity(0.4),
-                        blurRadius: 25,
-                        offset: const Offset(0, 8),
+                  // App icon
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: appTheme.primary.withOpacity(0.4),
+                          blurRadius: 25,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/images/icon.png',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Image.asset(
-                      'assets/images/icon.png',
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // Title
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'Unlock All 150+ Currencies',
+                  // Title
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Unlock All 225+ Currencies',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: appTheme.textPrimary,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Text(
+                    'Get real-time rates, unlimited conversions\n& premium features',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: appTheme.textPrimary,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+                      color: appTheme.textSecondary,
+                      fontSize: 15,
+                      height: 1.4,
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 10),
+                  const SizedBox(height: 28),
 
-                Text(
-                  'Get real-time rates, unlimited conversions\n& premium features',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: appTheme.textSecondary,
-                    fontSize: 15,
-                    height: 1.4,
+                  // Features list
+                  _buildFeatureItem(
+                    appTheme,
+                    Icons.all_inclusive,
+                    'Unlimited Currencies',
+                    'Add as many currencies as you want',
                   ),
-                ),
+                  _buildFeatureItem(
+                    appTheme,
+                    Icons.pie_chart_rounded,
+                    'Unlimited Portfolio',
+                    'Track all your crypto assets',
+                  ),
+                  _buildFeatureItem(
+                    appTheme,
+                    Icons.sync_rounded,
+                    'Live Rates',
+                    'Real-time exchange updates',
+                  ),
+                  _buildFeatureItem(
+                    appTheme,
+                    Icons.remove_circle_outline,
+                    'Ad-Free Experience',
+                    'No interruptions, ever',
+                  ),
 
-                const SizedBox(height: 28),
+                  const SizedBox(height: 20),
 
-                // Features list
-                _buildFeatureItem(
-                  appTheme,
-                  Icons.all_inclusive,
-                  'Unlimited Currencies',
-                  'Add as many currencies as you want',
-                ),
-                _buildFeatureItem(
-                  appTheme,
-                  Icons.pie_chart_rounded,
-                  'Unlimited Portfolio',
-                  'Track all your crypto assets',
-                ),
-                _buildFeatureItem(
-                  appTheme,
-                  Icons.sync_rounded,
-                  'Live Rates',
-                  'Real-time exchange updates',
-                ),
-                _buildFeatureItem(
-                  appTheme,
-                  Icons.remove_circle_outline,
-                  'Ad-Free Experience',
-                  'No interruptions, ever',
-                ),
+                  // Package options
+                  if (!_isLoading && _packages.isNotEmpty)
+                    ...(_packages.map((package) {
+                      final isSelected =
+                          _selectedPackage?.identifier == package.identifier;
+                      return _buildPackageOption(appTheme, package, isSelected);
+                    }).toList()),
 
-                const SizedBox(height: 20),
-
-                // Package options
-                if (!_isLoading && _packages.isNotEmpty)
-                  ...(_packages.map((package) {
-                    final isSelected =
-                        _selectedPackage?.identifier == package.identifier;
-                    return _buildPackageOption(appTheme, package, isSelected);
-                  }).toList()),
-
-                const SizedBox(height: 8),
-              ],
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ),
         ),
@@ -396,24 +400,7 @@ class _PaywallPageState extends State<PaywallPage>
           ),
         ),
 
-        // Skip text
-        Padding(
-          padding: const EdgeInsets.only(bottom: 24, top: 12),
-          child: GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              widget.onClose();
-            },
-            child: Text(
-              'Maybe later',
-              style: TextStyle(
-                color: appTheme.textTertiary,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
+        const SizedBox(height: 24),
       ],
     );
   }

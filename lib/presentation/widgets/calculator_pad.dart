@@ -34,11 +34,36 @@ class _CalculatorPadState extends State<CalculatorPad> {
   ];
 
   static const List<List<_ButtonType>> _buttonTypes = [
-    [_ButtonType.function, _ButtonType.function, _ButtonType.function, _ButtonType.operation],
-    [_ButtonType.number, _ButtonType.number, _ButtonType.number, _ButtonType.operation],
-    [_ButtonType.number, _ButtonType.number, _ButtonType.number, _ButtonType.operation],
-    [_ButtonType.number, _ButtonType.number, _ButtonType.number, _ButtonType.operation],
-    [_ButtonType.hide, _ButtonType.number, _ButtonType.number, _ButtonType.equals],
+    [
+      _ButtonType.function,
+      _ButtonType.function,
+      _ButtonType.function,
+      _ButtonType.operation
+    ],
+    [
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.operation
+    ],
+    [
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.operation
+    ],
+    [
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.operation
+    ],
+    [
+      _ButtonType.hide,
+      _ButtonType.number,
+      _ButtonType.number,
+      _ButtonType.equals
+    ],
   ];
 
   @override
@@ -46,14 +71,17 @@ class _CalculatorPadState extends State<CalculatorPad> {
     final bottomPadding = DesignTokens.getBottomPadding(context);
     final isTablet = DesignTokens.isTablet(context);
     final buttonPadding = isTablet ? DesignTokens.space : DesignTokens.spaceM;
-    final buttonSpacing = isTablet ? DesignTokens.radiusS : DesignTokens.spaceS - 2;
+    final buttonSpacing =
+        isTablet ? DesignTokens.radiusS : DesignTokens.spaceS - 2;
     final fontSize = isTablet ? DesignTokens.textHeadline : DesignTokens.textL;
     final equalsFontSize = isTablet ? 26.0 : DesignTokens.textHeadline;
 
     return ClipRRect(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
+      borderRadius:
+          BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: DesignTokens.blurHeavy, sigmaY: DesignTokens.blurHeavy),
+        filter: ImageFilter.blur(
+            sigmaX: DesignTokens.blurHeavy, sigmaY: DesignTokens.blurHeavy),
         child: Container(
           padding: EdgeInsets.only(
             left: DesignTokens.spaceM,
@@ -62,17 +90,21 @@ class _CalculatorPadState extends State<CalculatorPad> {
             bottom: bottomPadding,
           ),
           decoration: BoxDecoration(
-            color: widget.appTheme.surface.withOpacity(DesignTokens.opacityVeryHigh),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
+            color: widget.appTheme.surface
+                .withOpacity(DesignTokens.opacityVeryHigh),
+            borderRadius: BorderRadius.vertical(
+                top: Radius.circular(DesignTokens.radiusXXL)),
             border: Border(
               top: BorderSide(
-                color: Colors.white.withOpacity(DesignTokens.opacityMediumLight),
+                color:
+                    Colors.white.withOpacity(DesignTokens.opacityMediumLight),
                 width: DesignTokens.borderThin,
               ),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(DesignTokens.shadowOpacityHeavy),
+                color:
+                    Colors.black.withOpacity(DesignTokens.shadowOpacityHeavy),
                 blurRadius: DesignTokens.blurVeryHeavy,
                 offset: const Offset(0, -8),
               ),
@@ -87,7 +119,8 @@ class _CalculatorPadState extends State<CalculatorPad> {
                 height: DesignTokens.dragHandleHeight,
                 margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
                 decoration: BoxDecoration(
-                  color: widget.appTheme.primaryLight.withOpacity(DesignTokens.opacityVeryHeavy),
+                  color: widget.appTheme.primaryLight
+                      .withOpacity(DesignTokens.opacityVeryHeavy),
                   borderRadius: BorderRadius.circular(DesignTokens.spaceXS / 2),
                 ),
               ),
@@ -97,7 +130,8 @@ class _CalculatorPadState extends State<CalculatorPad> {
                   mainAxisSize: MainAxisSize.min,
                   children: List.generate(5, (rowIndex) {
                     return Padding(
-                      padding: EdgeInsets.only(bottom: rowIndex < 4 ? buttonSpacing : 0),
+                      padding: EdgeInsets.only(
+                          bottom: rowIndex < 4 ? buttonSpacing : 0),
                       child: _CalculatorRow(
                         values: _buttonValues[rowIndex],
                         types: _buttonTypes[rowIndex],
@@ -187,7 +221,8 @@ class _CalculatorButton extends StatefulWidget {
   State<_CalculatorButton> createState() => _CalculatorButtonState();
 }
 
-class _CalculatorButtonState extends State<_CalculatorButton> with SingleTickerProviderStateMixin {
+class _CalculatorButtonState extends State<_CalculatorButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -212,23 +247,28 @@ class _CalculatorButtonState extends State<_CalculatorButton> with SingleTickerP
   Color get _backgroundColor {
     switch (widget.type) {
       case _ButtonType.operation:
-        return widget.appTheme.primary;
+        return widget.appTheme.primary.withValues(alpha: 0.9);
       case _ButtonType.function:
-        return widget.appTheme.surfaceLight;
+        return widget.appTheme.surfaceLight.withValues(alpha: 0.8);
       case _ButtonType.equals:
         return widget.appTheme.accent;
       case _ButtonType.hide:
-        return widget.appTheme.surfaceLight;
+        return widget.appTheme.surfaceLight.withValues(alpha: 0.6);
       case _ButtonType.number:
-        return widget.appTheme.background.withOpacity(0.8);
+        return widget.appTheme.background.withValues(alpha: 0.85);
     }
   }
 
   Color get _textColor {
     switch (widget.type) {
+      case _ButtonType.operation:
+        return Colors.white;
+      case _ButtonType.equals:
+        return Colors.white;
       case _ButtonType.function:
-      case _ButtonType.hide:
         return widget.appTheme.textLight;
+      case _ButtonType.hide:
+        return widget.appTheme.textSecondary;
       default:
         return widget.appTheme.textPrimary;
     }
@@ -254,6 +294,9 @@ class _CalculatorButtonState extends State<_CalculatorButton> with SingleTickerP
 
   @override
   Widget build(BuildContext context) {
+    final isSpecial = widget.type == _ButtonType.operation ||
+        widget.type == _ButtonType.equals;
+
     return Expanded(
       child: GestureDetector(
         onTapDown: _handleTapDown,
@@ -266,24 +309,31 @@ class _CalculatorButtonState extends State<_CalculatorButton> with SingleTickerP
             return Transform.scale(
               scale: _scaleAnimation.value,
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                margin: const EdgeInsets.symmetric(horizontal: 5),
                 padding: EdgeInsets.symmetric(vertical: widget.buttonPadding),
                 decoration: BoxDecoration(
                   color: _backgroundColor,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.08),
+                    color: isSpecial
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.white.withValues(alpha: 0.08),
                     width: 1,
                   ),
-                  boxShadow: widget.type == _ButtonType.equals
-                      ? [
-                          BoxShadow(
-                            color: widget.appTheme.accent.withOpacity(0.4),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ]
-                      : null,
+                  boxShadow: [
+                    if (widget.type == _ButtonType.equals)
+                      BoxShadow(
+                        color: widget.appTheme.accent.withValues(alpha: 0.5),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    if (widget.type == _ButtonType.operation)
+                      BoxShadow(
+                        color: widget.appTheme.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                  ],
                 ),
                 child: Center(child: _buildContent()),
               ),
@@ -296,18 +346,29 @@ class _CalculatorButtonState extends State<_CalculatorButton> with SingleTickerP
 
   Widget _buildContent() {
     if (widget.type == _ButtonType.hide) {
-      return Icon(
-        Icons.keyboard_hide_rounded,
-        color: widget.appTheme.textLight,
-        size: 22,
+      return Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: widget.appTheme.background.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          Icons.keyboard_hide_rounded,
+          color: widget.appTheme.textSecondary,
+          size: 20,
+        ),
       );
     }
     return Text(
       widget.value,
       style: TextStyle(
         color: _textColor,
-        fontSize: widget.type == _ButtonType.equals ? widget.equalsFontSize : widget.fontSize,
-        fontWeight: FontWeight.w600,
+        fontSize: widget.type == _ButtonType.equals
+            ? widget.equalsFontSize
+            : widget.fontSize,
+        fontWeight: widget.type == _ButtonType.number
+            ? FontWeight.w500
+            : FontWeight.w700,
       ),
     );
   }

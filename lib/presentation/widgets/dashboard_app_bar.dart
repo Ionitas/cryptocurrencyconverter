@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/services/analytics/logging_system.dart';
 
 /// Reusable dashboard app bar with tab switcher and action buttons
@@ -23,7 +24,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 8);
 
   @override
   Widget build(BuildContext context) {
@@ -32,12 +33,18 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       automaticallyImplyLeading: false,
       centerTitle: false,
-      title: Row(
-        children: List.generate(
-          tabs.length,
-          (index) => Padding(
-            padding: EdgeInsets.only(right: index < tabs.length - 1 ? 24 : 0),
-            child: _TabButton(
+      toolbarHeight: kToolbarHeight + 8,
+      title: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        decoration: BoxDecoration(
+          color: appTheme.surface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusL),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(
+            tabs.length,
+            (index) => _TabButton(
               label: tabs[index],
               isSelected: currentIndex == index,
               appTheme: appTheme,
@@ -52,17 +59,19 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: [
-        IconButton(
-          icon: Icon(Icons.refresh, color: appTheme.textPrimary),
+        _ActionButton(
+          icon: Icons.refresh_rounded,
+          appTheme: appTheme,
           onPressed: () {
             AppLogger.buttonTap('Refresh');
             HapticFeedback.lightImpact();
             onRefresh();
           },
-          tooltip: 'Refresh',
+          tooltip: 'Refresh rates',
         ),
-        IconButton(
-          icon: Icon(Icons.settings, color: appTheme.textPrimary),
+        _ActionButton(
+          icon: Icons.tune_rounded,
+          appTheme: appTheme,
           onPressed: () {
             AppLogger.buttonTap('Settings');
             HapticFeedback.lightImpact();
@@ -70,12 +79,66 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
           },
           tooltip: 'Settings',
         ),
+        const SizedBox(width: 8),
       ],
     );
   }
 }
 
-/// Tab button widget with animation
+/// Action button with subtle hover effect
+class _ActionButton extends StatefulWidget {
+  final IconData icon;
+  final AppTheme appTheme;
+  final VoidCallback onPressed;
+  final String tooltip;
+
+  const _ActionButton({
+    required this.icon,
+    required this.appTheme,
+    required this.onPressed,
+    required this.tooltip,
+  });
+
+  @override
+  State<_ActionButton> createState() => _ActionButtonState();
+}
+
+class _ActionButtonState extends State<_ActionButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: widget.tooltip,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapUp: (_) {
+          setState(() => _isPressed = false);
+          widget.onPressed();
+        },
+        onTapCancel: () => setState(() => _isPressed = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: _isPressed
+                ? widget.appTheme.surfaceLight.withValues(alpha: 0.5)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+          ),
+          child: Icon(
+            widget.icon,
+            color: widget.appTheme.textPrimary.withValues(alpha: 0.9),
+            size: 22,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tab button widget with smooth animation
 class _TabButton extends StatelessWidget {
   final String label;
   final bool isSelected;
@@ -94,15 +157,31 @@ class _TabButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedDefaultTextStyle(
-        duration: const Duration(milliseconds: 200),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
-        style: TextStyle(
-          color: isSelected ? appTheme.accent : appTheme.textTertiary,
-          fontSize: isSelected ? 20 : 18,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? appTheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(DesignTokens.radiusM),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: appTheme.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-        child: Text(label),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : appTheme.textTertiary,
+            fontSize: 15,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

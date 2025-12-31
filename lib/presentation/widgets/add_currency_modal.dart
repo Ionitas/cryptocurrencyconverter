@@ -279,70 +279,135 @@ class _CurrencyListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: appTheme.background.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(14),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    appTheme.background.withValues(alpha: 0.5),
+                    appTheme.background.withValues(alpha: 0.3),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.08),
+                  color: currency.isCrypto
+                      ? appTheme.accent.withValues(alpha: 0.2)
+                      : appTheme.primary.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
               child: Row(
                 children: [
-                  CurrencyIcon(currency: currency),
-                  const SizedBox(width: 12),
+                  // Currency type indicator with icon
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: currency.isCrypto
+                          ? appTheme.cryptoBackground
+                          : appTheme.fiatBackground,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: CurrencyIcon(currency: currency, size: 38),
+                  ),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          children: [
+                            Text(
+                              currency.symbol,
+                              style: TextStyle(
+                                color: appTheme.textPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: currency.isCrypto
+                                    ? appTheme.accent.withValues(alpha: 0.15)
+                                    : appTheme.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                currency.isCrypto ? 'Crypto' : 'Fiat',
+                                style: TextStyle(
+                                  color: currency.isCrypto
+                                      ? appTheme.accent
+                                      : appTheme.primary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
                         Text(
                           currency.name,
-                          style: TextStyle(
-                            color: appTheme.textPrimary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          currency.symbol,
                           style: TextStyle(
                             color: appTheme.textTertiary,
                             fontSize: 13,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
                   Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: appTheme.primary.withOpacity(0.9),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          appTheme.primary,
+                          appTheme.primary.withValues(alpha: 0.85),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: appTheme.primary.withOpacity(0.3),
+                          color: appTheme.primary.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                    child: const Text(
-                      'Add',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Add',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

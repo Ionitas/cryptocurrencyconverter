@@ -36,7 +36,8 @@ class CurrencyCard extends StatefulWidget {
   State<CurrencyCard> createState() => _CurrencyCardState();
 }
 
-class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderStateMixin {
+class _CurrencyCardState extends State<CurrencyCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
 
@@ -72,6 +73,9 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = DesignTokens.isTablet(context);
+    final isPositiveChange = widget.currency.changePercent24h >= 0;
+
     return Dismissible(
       key: Key('dismissible_${widget.currency.symbol}'),
       direction: DismissDirection.endToStart,
@@ -82,21 +86,36 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
         widget.onDismissed();
       },
       background: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        margin: EdgeInsets.only(bottom: DesignTokens.cardMarginBottom + 4),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              widget.appTheme.error.withOpacity(0.85),
+              widget.appTheme.error.withValues(alpha: 0.7),
               widget.appTheme.error,
             ],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusXL),
         ),
         alignment: Alignment.centerRight,
-        child: Icon(Icons.delete_outline_rounded, color: widget.appTheme.textLight, size: 24),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Remove',
+              style: TextStyle(
+                color: widget.appTheme.textLight,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.delete_outline_rounded,
+                color: widget.appTheme.textLight, size: 22),
+          ],
+        ),
       ),
       child: GestureDetector(
         onTap: () {
@@ -109,59 +128,138 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
         child: AnimatedBuilder(
           animation: _scaleAnimation,
           builder: (context, child) {
-            final isTablet = DesignTokens.isTablet(context);
             return Transform.scale(
               scale: _scaleAnimation.value,
               child: Container(
-                margin: EdgeInsets.only(bottom: DesignTokens.cardMarginBottom),
-                padding:
-                    EdgeInsets.all(isTablet ? DesignTokens.space : DesignTokens.buttonPaddingV),
+                margin:
+                    EdgeInsets.only(bottom: DesignTokens.cardMarginBottom + 2),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isTablet ? DesignTokens.spaceS : 10,
+                  vertical: isTablet ? DesignTokens.spaceS : 10,
+                ),
                 decoration: BoxDecoration(
                   color: widget.appTheme.surface,
-                  borderRadius: BorderRadius.circular(DesignTokens.radiusL),
-                  boxShadow: DesignTokens.cardShadow(Colors.black),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusXL),
+                  border: Border.all(
+                    color: widget.appTheme.surfaceLight.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
+                    // Drag handle - compact styling
                     ReorderableDragStartListener(
                       index: widget.index,
                       child: Padding(
-                        padding: EdgeInsets.all(DesignTokens.spaceXS),
+                        padding: const EdgeInsets.only(right: 2),
                         child: Icon(
-                          Icons.drag_indicator,
-                          color: widget.appTheme.primaryLight,
-                          size: DesignTokens.icon,
+                          Icons.drag_indicator_rounded,
+                          color: widget.appTheme.textTertiary
+                              .withValues(alpha: 0.6),
+                          size: 18,
                         ),
                       ),
                     ),
                     SizedBox(width: DesignTokens.spaceS),
-                    CurrencyIcon(
+                    // Currency icon with subtle background
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: widget.currency.isCrypto
+                            ? widget.appTheme.cryptoBackground
+                            : widget.appTheme.fiatBackground,
+                        borderRadius:
+                            BorderRadius.circular(DesignTokens.radiusM),
+                      ),
+                      child: CurrencyIcon(
                         currency: widget.currency,
-                        size: isTablet ? DesignTokens.currencyIconL : DesignTokens.currencyIcon),
-                    SizedBox(width: DesignTokens.spaceM),
+                        size: isTablet
+                            ? DesignTokens.currencyIconL
+                            : DesignTokens.currencyIcon,
+                      ),
+                    ),
+                    SizedBox(width: DesignTokens.spaceS),
+                    // Currency info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            widget.currency.symbol,
-                            style: TextStyle(
-                              color: widget.appTheme.textPrimary,
-                              fontSize: isTablet ? DesignTokens.textL : DesignTokens.text,
-                              fontWeight: FontWeight.w600,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                widget.currency.symbol,
+                                style: TextStyle(
+                                  color: widget.appTheme.textPrimary,
+                                  fontSize: isTablet
+                                      ? DesignTokens.textL
+                                      : DesignTokens.text,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              if (widget.currency.changePercent24h != 0.0) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isPositiveChange
+                                        ? widget.appTheme.success
+                                            .withValues(alpha: 0.15)
+                                        : widget.appTheme.error
+                                            .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isPositiveChange
+                                            ? Icons.trending_up_rounded
+                                            : Icons.trending_down_rounded,
+                                        color: isPositiveChange
+                                            ? widget.appTheme.success
+                                            : widget.appTheme.error,
+                                        size: 12,
+                                      ),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        '${isPositiveChange ? '+' : ''}${widget.currency.changePercent24h.toStringAsFixed(1)}%',
+                                        style: TextStyle(
+                                          color: isPositiveChange
+                                              ? widget.appTheme.success
+                                              : widget.appTheme.error,
+                                          fontSize: DesignTokens.textXS,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
+                          const SizedBox(height: 2),
                           Text(
                             widget.currency.name,
                             style: TextStyle(
                               color: widget.appTheme.textTertiary,
-                              fontSize: isTablet ? DesignTokens.textBody : DesignTokens.textBodyS,
+                              fontSize: isTablet
+                                  ? DesignTokens.textBody
+                                  : DesignTokens.textBodyS,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
+                    // Converted amount column
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -169,47 +267,30 @@ class _CurrencyCardState extends State<CurrencyCard> with SingleTickerProviderSt
                           widget.formatAmount(widget.convertedAmount),
                           style: TextStyle(
                             color: widget.appTheme.textPrimary,
-                            fontSize: isTablet ? DesignTokens.textTitle : DesignTokens.textL,
-                            fontWeight: FontWeight.bold,
+                            fontSize: isTablet
+                                ? DesignTokens.textTitle
+                                : DesignTokens.textL,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          '1 ${widget.selectedCurrency.symbol} = ${widget.formatAmount(widget.exchangeRate)} ${widget.currency.symbol}',
+                          '1 ${widget.selectedCurrency.symbol} = ${widget.formatAmount(widget.exchangeRate)}',
                           style: TextStyle(
                             color: widget.appTheme.textTertiary,
-                            fontSize: isTablet ? DesignTokens.textCaption : DesignTokens.textS,
+                            fontSize: isTablet
+                                ? DesignTokens.textCaption
+                                : DesignTokens.textS,
                           ),
                         ),
-                        // 24h change indicator
-                        if (widget.currency.changePercent24h != 0.0)
-                          Padding(
-                            padding: EdgeInsets.only(top: DesignTokens.spaceXS / 2),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  widget.currency.changePercent24h >= 0
-                                      ? Icons.arrow_drop_up
-                                      : Icons.arrow_drop_down,
-                                  color: widget.currency.changePercent24h >= 0
-                                      ? widget.appTheme.success
-                                      : widget.appTheme.error,
-                                  size: DesignTokens.iconS,
-                                ),
-                                Text(
-                                  '${widget.currency.changePercent24h >= 0 ? '+' : ''}${widget.currency.changePercent24h.toStringAsFixed(2)}%',
-                                  style: TextStyle(
-                                    color: widget.currency.changePercent24h >= 0
-                                        ? widget.appTheme.success
-                                        : widget.appTheme.error,
-                                    fontSize: DesignTokens.textXS,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                       ],
+                    ),
+                    const SizedBox(width: 2),
+                    // Tap indicator
+                    Icon(
+                      Icons.swap_horiz_rounded,
+                      color: widget.appTheme.primary.withValues(alpha: 0.5),
+                      size: 18,
                     ),
                   ],
                 ),

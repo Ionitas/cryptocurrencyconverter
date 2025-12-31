@@ -7,6 +7,7 @@ import '../../core/di/injection.dart';
 import '../../core/services/onboarding_service.dart';
 import '../../core/services/geolocation_service.dart';
 import '../../core/services/currency_sync_service.dart';
+import '../../core/services/subscription/subscription_service.dart';
 import '../../core/services/analytics/analytics_manager.dart';
 import 'welcome_page.dart';
 import 'features_page.dart';
@@ -174,6 +175,32 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     setState(() {
       _selectedPurpose = purpose;
     });
+
+    // Check if user already has an active subscription
+    // If so, skip the paywall and complete onboarding
+    _checkSubscriptionAndProceed();
+  }
+
+  Future<void> _checkSubscriptionAndProceed() async {
+    try {
+      final subscriptionService = SubscriptionService.instance;
+
+      // Initialize subscription service if needed to check status
+      if (!subscriptionService.isInitialized) {
+        await subscriptionService.init();
+      }
+
+      // If user is already premium, skip paywall
+      if (subscriptionService.isPremium) {
+        _completeOnboarding();
+        return;
+      }
+    } catch (e) {
+      // If we can't check subscription status, show paywall anyway
+      debugPrint('Could not check subscription status: $e');
+    }
+
+    // Show paywall for non-premium users
     _goToNextPage();
   }
 

@@ -18,20 +18,14 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late AnimationController _fadeController;
-  late AnimationController _pulseController;
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
 
-  late Animation<double> _logoScale;
-  late Animation<double> _logoOpacity;
-  late Animation<double> _textOpacity;
-  late Animation<double> _pulseAnimation;
-
-  // Brand colors (matching app theme)
+  // Brand colors
   static const Color _backgroundColor = Color(0xFF0A0E21);
   static const Color _primaryColor = Color(0xFF6C5CE7);
-  static const Color _accentColor = Color(0xFF00D9FF);
 
   @override
   void initState() {
@@ -39,7 +33,6 @@ class _SplashScreenState extends State<SplashScreen>
     _setupAnimations();
     _startAnimations();
 
-    // Set status bar style for splash
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
@@ -49,75 +42,37 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _setupAnimations() {
-    // Logo entrance animation
-    _logoController = AnimationController(
+    _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
 
-    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
-        parent: _logoController,
-        curve: Curves.elasticOut,
+        parent: _controller,
+        curve: Curves.easeOutBack,
       ),
     );
 
-    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _logoController,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-      ),
-    );
-
-    // Text fade animation
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-
-    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeOut,
-      ),
-    );
-
-    // Pulse animation for loading indicator
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-
-    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
   }
 
   void _startAnimations() async {
-    // Start logo animation
-    _logoController.forward();
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) _controller.forward();
 
-    // Start text animation after logo
-    await Future.delayed(const Duration(milliseconds: 400));
-    if (mounted) _fadeController.forward();
-
-    // Start pulsing animation
-    await Future.delayed(const Duration(milliseconds: 200));
-    if (mounted) _pulseController.repeat(reverse: true);
-
-    // Minimum display time
     await Future.delayed(widget.minimumDisplayDuration);
     widget.onAnimationComplete?.call();
   }
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _fadeController.dispose();
-    _pulseController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -125,213 +80,48 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _backgroundColor,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0A0E21),
-              Color(0xFF1A1F3C),
-              Color(0xFF0A0E21),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(flex: 2),
-
-                // Animated logo
-                AnimatedBuilder(
-                  animation: _logoController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _logoScale.value,
-                      child: Opacity(
-                        opacity: _logoOpacity.value,
-                        child: _buildLogo(),
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Opacity(
+              opacity: _fadeAnimation.value,
+              child: Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // App icon with subtle glow
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _primaryColor.withValues(alpha: 0.3),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 32),
-
-                // App name with animation
-                AnimatedBuilder(
-                  animation: _fadeController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _textOpacity.value,
-                      child: Transform.translate(
-                        offset: Offset(0, 20 * (1 - _textOpacity.value)),
-                        child: _buildAppName(),
-                      ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 8),
-
-                // Tagline
-                AnimatedBuilder(
-                  animation: _fadeController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _textOpacity.value * 0.7,
-                      child: const Text(
-                        'Real-time Currency Converter',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: 0.5,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: Image.asset(
+                          'assets/images/icon.png',
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-
-                const Spacer(flex: 2),
-
-                // Loading indicator
-                AnimatedBuilder(
-                  animation:
-                      Listenable.merge([_fadeController, _pulseController]),
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _textOpacity.value,
-                      child: Transform.scale(
-                        scale: _pulseAnimation.value,
-                        child: _buildLoadingIndicator(),
-                      ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 16),
-
-                // Loading text
-                AnimatedBuilder(
-                  animation: _fadeController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _textOpacity.value * 0.5,
-                      child: const Text(
-                        'Loading...',
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 48),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLogo() {
-    return Container(
-      width: 120,
-      height: 120,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: _primaryColor.withValues(alpha: 0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 15),
-          ),
-          BoxShadow(
-            color: _accentColor.withValues(alpha: 0.2),
-            blurRadius: 60,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(32),
-        child: Image.asset(
-          'assets/images/icon.png',
-          width: 120,
-          height: 120,
-          fit: BoxFit.cover,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppName() {
-    return ShaderMask(
-      shaderCallback: (bounds) => const LinearGradient(
-        colors: [Colors.white, Color(0xFFE0E0E0)],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(bounds),
-      child: const Text(
-        'Currency Ex',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 32,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingIndicator() {
-    return Column(
-      children: [
-        // Animated loading bar
-        SizedBox(
-          width: 180,
-          height: 4,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(2),
-            child: LinearProgressIndicator(
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _accentColor.withValues(alpha: 0.8),
               ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        // Animated dots
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(3, (index) {
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.3, end: 1.0),
-              duration: Duration(milliseconds: 600 + (index * 200)),
-              curve: Curves.easeInOut,
-              builder: (context, value, child) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _accentColor.withValues(alpha: value * 0.8),
-                  ),
-                );
-              },
             );
-          }),
+          },
         ),
-      ],
+      ),
     );
   }
 }

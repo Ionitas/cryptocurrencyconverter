@@ -71,4 +71,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'cryptoconvertercurrencyassets.firebasestorage.app',
     iosBundleId: 'com.example.cryptocurrencyconverter',
   );
+
 }

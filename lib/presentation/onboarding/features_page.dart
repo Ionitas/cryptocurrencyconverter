@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/design_tokens.dart';
 import '../../core/services/analytics/tracking_service.dart';
 import '../../core/services/analytics/firebase_analytics_service.dart';
 
@@ -12,12 +13,14 @@ class FeatureItem {
   final String title;
   final String description;
   final Color color;
+  final String emoji;
 
   const FeatureItem({
     required this.icon,
     required this.title,
     required this.description,
     required this.color,
+    this.emoji = '',
   });
 }
 
@@ -44,28 +47,32 @@ class _FeaturesPageState extends State<FeaturesPage>
 
   static const List<FeatureItem> _features = [
     FeatureItem(
-      icon: Icons.speed_rounded,
+      icon: Icons.bolt_rounded,
       title: 'Real-time Rates',
-      description: 'Live exchange rates updated every second',
+      description: 'Live exchange rates updated constantly',
       color: Color(0xFF10B981),
+      emoji: '⚡',
     ),
     FeatureItem(
       icon: Icons.currency_bitcoin_rounded,
-      title: '150+ Currencies',
-      description: 'Crypto, fiat & precious metals supported',
+      title: '225+ Currencies',
+      description: 'Crypto, fiat & precious metals',
       color: Color(0xFFF59E0B),
+      emoji: '🌍',
     ),
     FeatureItem(
       icon: Icons.calculate_rounded,
       title: 'Smart Calculator',
-      description: 'Built-in calculator for quick conversions',
+      description: 'Built-in calculator for quick math',
       color: Color(0xFF3B82F6),
+      emoji: '🧮',
     ),
     FeatureItem(
-      icon: Icons.offline_bolt_rounded,
+      icon: Icons.cloud_off_rounded,
       title: 'Works Offline',
-      description: 'Cached rates available without internet',
+      description: 'Cached rates without internet',
       color: Color(0xFF8B5CF6),
+      emoji: '📱',
     ),
   ];
 
@@ -110,12 +117,14 @@ class _FeaturesPageState extends State<FeaturesPage>
   @override
   Widget build(BuildContext context) {
     final appTheme = widget.appTheme;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isSmallScreen = screenHeight < 700;
 
     return Column(
       children: [
-        const SizedBox(height: 20),
+        SizedBox(height: isSmallScreen ? 16 : 24),
 
-        // Title
+        // Title with badge
         FadeTransition(
           opacity: Tween<double>(begin: 0, end: 1).animate(
             CurvedAnimation(
@@ -125,12 +134,45 @@ class _FeaturesPageState extends State<FeaturesPage>
           ),
           child: Column(
             children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: appTheme.accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: appTheme.accent.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      color: appTheme.accent,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Key Features',
+                      style: TextStyle(
+                        color: appTheme.accent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: isSmallScreen ? 12 : 16),
               Text(
                 'Powerful Features',
                 style: TextStyle(
                   color: appTheme.textPrimary,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+                  fontSize: isSmallScreen ? 26 : 30,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 8),
@@ -138,14 +180,14 @@ class _FeaturesPageState extends State<FeaturesPage>
                 'Everything you need in one app',
                 style: TextStyle(
                   color: appTheme.textSecondary,
-                  fontSize: 16,
+                  fontSize: 15,
                 ),
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 32),
+        SizedBox(height: isSmallScreen ? 20 : 28),
 
         // Animated feature showcase
         Expanded(
@@ -160,7 +202,8 @@ class _FeaturesPageState extends State<FeaturesPage>
 
   Widget _buildFeatureShowcase(AppTheme appTheme) {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      physics: const BouncingScrollPhysics(),
       itemCount: _features.length,
       itemBuilder: (context, index) {
         final feature = _features[index];
@@ -170,7 +213,7 @@ class _FeaturesPageState extends State<FeaturesPage>
           builder: (context, child) {
             final value = _featureAnimations[index].value;
             return Transform.translate(
-              offset: Offset(50 * (1 - value), 0),
+              offset: Offset(40 * (1 - value), 0),
               child: Opacity(
                 opacity: value,
                 child: _buildFeatureCard(appTheme, feature, index),
@@ -184,90 +227,115 @@ class _FeaturesPageState extends State<FeaturesPage>
 
   Widget _buildFeatureCard(AppTheme appTheme, FeatureItem feature, int index) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: AnimatedBuilder(
-        animation: _pulseController,
-        builder: (context, child) {
-          // Staggered pulse effect
-          final pulseValue = (_pulseController.value + index * 0.2) % 1.0;
-          final glowOpacity = 0.1 + (pulseValue * 0.1);
-
-          return Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: appTheme.surface.withOpacity(0.7),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: feature.color.withOpacity(0.3),
-                width: 1,
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              appTheme.surface,
+              appTheme.surface.withValues(alpha: 0.8),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: feature.color.withValues(alpha: 0.25),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: feature.color.withValues(alpha: 0.1),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icon container with gradient
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    feature.color.withValues(alpha: 0.2),
+                    feature.color.withValues(alpha: 0.1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: feature.color.withValues(alpha: 0.3),
+                  width: 1,
+                ),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: feature.color.withOpacity(glowOpacity),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
+              child: Center(
+                child: Text(
+                  feature.emoji,
+                  style: const TextStyle(fontSize: 26),
                 ),
-              ],
+              ),
             ),
-            child: Row(
-              children: [
-                // Animated icon container
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: feature.color.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
+            const SizedBox(width: 16),
+            // Text content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    feature.title,
+                    style: TextStyle(
+                      color: appTheme.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                  child: Icon(
-                    feature.icon,
-                    color: feature.color,
-                    size: 30,
+                  const SizedBox(height: 4),
+                  Text(
+                    feature.description,
+                    style: TextStyle(
+                      color: appTheme.textSecondary,
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                // Text content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        feature.title,
-                        style: TextStyle(
-                          color: appTheme.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        feature.description,
-                        style: TextStyle(
-                          color: appTheme.textSecondary,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Checkmark
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: feature.color.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.check_rounded,
-                    color: feature.color,
-                    size: 18,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          );
-        },
+            // Check badge
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    feature.color,
+                    feature.color.withValues(alpha: 0.8),
+                  ],
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: feature.color.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -292,31 +360,60 @@ class _FeaturesPageState extends State<FeaturesPage>
 
   Widget _buildContinueButton(AppTheme appTheme) {
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 16,
+        bottom: DesignTokens.getBottomPadding(context) + 16,
+      ),
       child: GestureDetector(
         onTap: _handleContinue,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 18),
           decoration: BoxDecoration(
-            color: appTheme.primary,
-            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                appTheme.primary,
+                appTheme.primary.withValues(alpha: 0.85),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: appTheme.primary.withOpacity(0.4),
+                color: appTheme.primary.withValues(alpha: 0.4),
                 blurRadius: 20,
                 offset: const Offset(0, 6),
               ),
             ],
           ),
-          child: const Text(
-            'Continue',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                'Continue',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ),
+            ],
           ),
         ),
       ),
