@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import '../../core/di/injection.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/analytics/logging_system.dart';
+import '../../core/services/analytics/analytics_manager.dart';
+import '../../core/services/subscription/subscription_manager.dart';
+import '../../core/services/startup/app_lifecycle_manager.dart';
+import '../../core/services/currency_sync_service.dart';
 import '../widgets/dashboard_app_bar.dart';
+import '../widgets/subscription_paywall.dart';
 import '../controllers/dashboard_controller.dart';
 import 'converter_screen.dart';
 import 'portfolio/portfolio_screen.dart';
@@ -17,11 +22,14 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final AppTheme _appTheme = getIt<AppTheme>();
+  final CurrencySyncService _syncService = getIt<CurrencySyncService>();
   late DashboardController _controller;
 
   // Global keys to access child screen methods
-  final GlobalKey<ConverterScreenState> _converterKey = GlobalKey<ConverterScreenState>();
-  final GlobalKey<PortfolioScreenState> _portfolioKey = GlobalKey<PortfolioScreenState>();
+  final GlobalKey<ConverterScreenState> _converterKey =
+      GlobalKey<ConverterScreenState>();
+  final GlobalKey<PortfolioScreenState> _portfolioKey =
+      GlobalKey<PortfolioScreenState>();
 
   @override
   void initState() {
@@ -29,10 +37,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _controller = DashboardController();
     _controller.addListener(_onControllerChanged);
     _appTheme.addListener(_onThemeChanged);
+
+    // Register for lifecycle events
+    AppLifecycleManager.instance.addForegroundListener(_onAppForeground);
+
+    // Log screen view
+    getIt<AnalyticsManager>().logScreenView('dashboard');
+
+    // Check if we should show paywall on this app open
+    _checkAndShowPaywall();
+  }
+
+  /// Called when app returns to foreground
+  void _onAppForeground() {
+    // Refresh data if it might be stale
+    if (AppLifecycleManager.instance.shouldRefreshData) {
+      AppLogger.i('Dashboard', 'App returned from background, refreshing data');
+      _syncService.syncNow(forceRefresh: false);
+    }
+  }
+
+  /// Check if paywall should be shown (every 3rd app open)
+  Future<void> _checkAndShowPaywall() async {
+    // Wait for the screen to be built first
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    if (!mounted) return;
+
+    final shouldShow =
+        await SubscriptionManager.instance.incrementAppOpenAndCheckPaywall();
+
+    if (shouldShow && mounted) {
+      // Log paywall view
+      getIt<AnalyticsManager>().logPaywallView(
+        source: 'periodic',
+        currencyCount: _syncService.currencies.length,
+      );
+      await SubscriptionPaywall.show(context);
+    }
   }
 
   @override
   void dispose() {
+    AppLifecycleManager.instance.removeForegroundListener(_onAppForeground);
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _appTheme.removeListener(_onThemeChanged);

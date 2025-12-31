@@ -1,9 +1,16 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../core/theme/app_theme.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-/// Stage 3: Paywall placeholder screen
+import '../../core/theme/app_theme.dart';
+import '../../core/services/subscription/subscription_service.dart';
+import '../../core/services/analytics/logging_system.dart';
+import '../utils/snackbar_helper.dart';
+import '../widgets/cooldown_button.dart';
+
+/// Stage 3: Paywall screen for onboarding
 class PaywallPage extends StatefulWidget {
   final AppTheme appTheme;
   final VoidCallback onClose;
@@ -25,6 +32,23 @@ class _PaywallPageState extends State<PaywallPage>
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+
+  final SubscriptionService _subscriptionService = SubscriptionService.instance;
+
+  // URL placeholders - will be updated by user
+  static const String _termsUrl = 'https://example.com/terms';
+  static const String _privacyUrl = 'https://example.com/privacy';
+
+  bool _isLoading = false;
+  Package? _selectedPackage;
+  List<Package> _packages = [];
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   void initState() {
@@ -49,6 +73,103 @@ class _PaywallPageState extends State<PaywallPage>
     );
 
     _animController.forward();
+    _loadPackages();
+  }
+
+  Future<void> _loadPackages() async {
+    setState(() => _isLoading = true);
+
+    try {
+      if (!_subscriptionService.isInitialized) {
+        await _subscriptionService.init();
+      } else {
+        await _subscriptionService.refresh();
+      }
+
+      final packages = _subscriptionService.availablePackages;
+
+      if (mounted) {
+        setState(() {
+          _packages = packages;
+          _isLoading = false;
+          // Select annual by default if available
+          if (packages.isNotEmpty) {
+            _selectedPackage = packages.firstWhere(
+              (p) => p.packageType == PackageType.annual,
+              orElse: () => packages.first,
+            );
+          }
+        });
+      }
+    } catch (e) {
+      AppLogger.e('PaywallPage', 'Failed to load packages', error: e);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handlePurchase() async {
+    if (_selectedPackage == null) return;
+
+    setState(() => _isLoading = true);
+    HapticFeedback.mediumImpact();
+
+    await _subscriptionService.handlePurchase(
+      package: _selectedPackage!,
+      onSuccess: (result, package) {
+        AppLogger.s('PaywallPage', 'Purchase successful');
+        if (mounted) {
+          setState(() => _isLoading = false);
+          SnackBarHelper.show(
+            context: context,
+            message: '🎉 Welcome to Premium!',
+            appTheme: widget.appTheme,
+            type: SnackBarType.success,
+          );
+          widget.onSubscribe();
+        }
+      },
+      onError: (message) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          SnackBarHelper.show(
+            context: context,
+            message: message,
+            appTheme: widget.appTheme,
+            type: SnackBarType.error,
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _handleRestore() async {
+    setState(() => _isLoading = true);
+    HapticFeedback.lightImpact();
+
+    final success = await _subscriptionService.restorePurchases();
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+
+      if (success) {
+        SnackBarHelper.show(
+          context: context,
+          message: '✓ Purchases restored successfully',
+          appTheme: widget.appTheme,
+          type: SnackBarType.success,
+        );
+        widget.onSubscribe();
+      } else {
+        SnackBarHelper.show(
+          context: context,
+          message: 'No active subscription found',
+          appTheme: widget.appTheme,
+          type: SnackBarType.info,
+        );
+      }
+    }
   }
 
   @override
@@ -78,136 +199,206 @@ class _PaywallPageState extends State<PaywallPage>
   Widget _buildContent(AppTheme appTheme) {
     return Column(
       children: [
-        // Close button
+        // Cooldown close button on the left
         Align(
-          alignment: Alignment.topRight,
+          alignment: Alignment.topLeft,
           child: Padding(
-            padding: const EdgeInsets.only(top: 8, right: 16),
-            child: GestureDetector(
-              onTap: () {
+            padding: const EdgeInsets.only(top: 8, left: 8),
+            child: CooldownButtonWidget(
+              cooldownSeconds: 3,
+              onTouch: () {
                 HapticFeedback.lightImpact();
                 widget.onClose();
               },
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: appTheme.surfaceLight.withOpacity(0.5),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.close,
-                  color: appTheme.textSecondary,
-                  size: 24,
-                ),
-              ),
+              finishType: CooldownButtonFinishType.icon,
+              loadingType: CooldownButtonLoadingType.text,
+              textOnCountdown: '{s}s',
+              iconAfterCountdown: Icons.close,
+              color: appTheme.textSecondary,
+              padding: const EdgeInsets.all(12),
             ),
           ),
         ),
 
-        const SizedBox(height: 20),
+        // Scrollable content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 4),
 
-        // Premium icon
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                appTheme.accent,
-                appTheme.primary,
+                // App icon
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: appTheme.primary.withOpacity(0.4),
+                        blurRadius: 25,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Image.asset(
+                      'assets/images/icon.png',
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Title
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Unlock All 150+ Currencies',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: appTheme.textPrimary,
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                Text(
+                  'Get real-time rates, unlimited conversions\n& premium features',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: appTheme.textSecondary,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 28),
+
+                // Features list
+                _buildFeatureItem(
+                  appTheme,
+                  Icons.all_inclusive,
+                  'Unlimited Currencies',
+                  'Add as many currencies as you want',
+                ),
+                _buildFeatureItem(
+                  appTheme,
+                  Icons.pie_chart_rounded,
+                  'Unlimited Portfolio',
+                  'Track all your crypto assets',
+                ),
+                _buildFeatureItem(
+                  appTheme,
+                  Icons.sync_rounded,
+                  'Live Rates',
+                  'Real-time exchange updates',
+                ),
+                _buildFeatureItem(
+                  appTheme,
+                  Icons.remove_circle_outline,
+                  'Ad-Free Experience',
+                  'No interruptions, ever',
+                ),
+
+                const SizedBox(height: 20),
+
+                // Package options
+                if (!_isLoading && _packages.isNotEmpty)
+                  ...(_packages.map((package) {
+                    final isSelected =
+                        _selectedPackage?.identifier == package.identifier;
+                    return _buildPackageOption(appTheme, package, isSelected);
+                  }).toList()),
+
+                const SizedBox(height: 8),
               ],
             ),
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: appTheme.primary.withOpacity(0.4),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.workspace_premium_rounded,
-            color: Colors.white,
-            size: 50,
           ),
         ),
 
-        const SizedBox(height: 28),
-
-        // Title
-        Text(
-          'Unlock Premium',
-          style: TextStyle(
-            color: appTheme.textPrimary,
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Text(
-            'Get unlimited access to all features',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: appTheme.textSecondary,
-              fontSize: 16,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 36),
-
-        // Features list
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            children: [
-              _buildFeatureItem(
-                appTheme,
-                Icons.all_inclusive,
-                'Unlimited Conversions',
-                'No limits on currency pairs',
-              ),
-              _buildFeatureItem(
-                appTheme,
-                Icons.notifications_active_rounded,
-                'Price Alerts',
-                'Get notified of rate changes',
-              ),
-              _buildFeatureItem(
-                appTheme,
-                Icons.history_rounded,
-                'Historical Data',
-                'View exchange rate history',
-              ),
-              _buildFeatureItem(
-                appTheme,
-                Icons.remove_circle_outline,
-                'Ad-Free Experience',
-                'No interruptions, ever',
-              ),
-              _buildFeatureItem(
-                appTheme,
-                Icons.sync_rounded,
-                'Live Rates',
-                'Real-time exchange updates',
-              ),
-            ],
-          ),
-        ),
-
-        // Subscribe button (placeholder)
+        // Subscribe button
         _buildSubscribeButton(appTheme),
+
+        // Restore purchases + Terms + Privacy row
+        Padding(
+          padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              GestureDetector(
+                onTap: () => _launchUrl(_termsUrl),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Terms',
+                    style: TextStyle(
+                      color: appTheme.textTertiary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              Text(
+                '•',
+                style: TextStyle(
+                  color: appTheme.textTertiary,
+                  fontSize: 13,
+                ),
+              ),
+              GestureDetector(
+                onTap: _isLoading ? null : _handleRestore,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Restore',
+                    style: TextStyle(
+                      color: appTheme.textTertiary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              Text(
+                '•',
+                style: TextStyle(
+                  color: appTheme.textTertiary,
+                  fontSize: 13,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _launchUrl(_privacyUrl),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    'Privacy',
+                    style: TextStyle(
+                      color: appTheme.textTertiary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
 
         // Skip text
         Padding(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.only(bottom: 24, top: 12),
           child: GestureDetector(
             onTap: () {
               HapticFeedback.lightImpact();
@@ -217,7 +408,7 @@ class _PaywallPageState extends State<PaywallPage>
               'Maybe later',
               style: TextStyle(
                 color: appTheme.textTertiary,
-                fontSize: 16,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -283,21 +474,143 @@ class _PaywallPageState extends State<PaywallPage>
     );
   }
 
+  Widget _buildPackageOption(
+      AppTheme appTheme, Package package, bool isSelected) {
+    final priceString = package.storeProduct.priceString;
+    final period = _getPackagePeriod(package.packageType);
+    final isBestValue = package.packageType == PackageType.annual;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _selectedPackage = package);
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? appTheme.primary.withOpacity(0.1)
+              : appTheme.surfaceLight.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? appTheme.primary : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? appTheme.primary : Colors.transparent,
+                border: Border.all(
+                  color: isSelected ? appTheme.primary : appTheme.textTertiary,
+                  width: 2,
+                ),
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, color: Colors.white, size: 14)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        period,
+                        style: TextStyle(
+                          color: appTheme.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (isBestValue) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: appTheme.success,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'BEST VALUE',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (package.storeProduct.introductoryPrice != null)
+                    Text(
+                      'Free trial available',
+                      style: TextStyle(
+                        color: appTheme.success,
+                        fontSize: 12,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Text(
+              priceString,
+              style: TextStyle(
+                color: appTheme.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getPackagePeriod(PackageType type) {
+    switch (type) {
+      case PackageType.weekly:
+        return 'Weekly';
+      case PackageType.monthly:
+        return 'Monthly';
+      case PackageType.twoMonth:
+        return '2 Months';
+      case PackageType.threeMonth:
+        return '3 Months';
+      case PackageType.sixMonth:
+        return '6 Months';
+      case PackageType.annual:
+        return 'Annual';
+      case PackageType.lifetime:
+        return 'Lifetime';
+      default:
+        return 'Subscription';
+    }
+  }
+
   Widget _buildSubscribeButton(AppTheme appTheme) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: GestureDetector(
-        onTap: () {
-          HapticFeedback.mediumImpact();
-          widget.onSubscribe();
-        },
+        onTap: _isLoading ? null : _handlePurchase,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 18),
+              padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.centerLeft,
@@ -307,39 +620,59 @@ class _PaywallPageState extends State<PaywallPage>
                     appTheme.accent,
                   ],
                 ),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
                     color: appTheme.primary.withOpacity(0.5),
-                    blurRadius: 25,
-                    offset: const Offset(0, 8),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Start Free Trial',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '7 days free, then \$4.99/month',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
+              child: Center(
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          Text(
+                            _getSubscribeButtonText(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (_selectedPackage != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              _selectedPackage!.storeProduct.priceString,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  String _getSubscribeButtonText() {
+    if (_selectedPackage?.storeProduct.introductoryPrice != null) {
+      return 'Start Free Trial';
+    }
+    return 'Subscribe Now';
   }
 }

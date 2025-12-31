@@ -24,15 +24,26 @@ class PremiumCard extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
-              color: appTheme.primary.withOpacity(0.2),
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: appTheme.primary.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
             ),
-            child: Icon(
-              Icons.workspace_premium,
-              color: appTheme.primary,
-              size: 32,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Image.asset(
+                'assets/images/icon.png',
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -77,7 +88,8 @@ class PremiumCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.arrow_forward, color: appTheme.textPrimary, size: 20),
+                  Icon(Icons.arrow_forward,
+                      color: appTheme.textPrimary, size: 20),
                 ],
               ),
             ),

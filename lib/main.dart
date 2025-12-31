@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,28 +10,64 @@ import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/onboarding_service.dart';
-// import 'subscription/core/revenuecat_purchases_service.dart';
+import 'core/services/currency_sync_service.dart';
+import 'core/services/subscription/subscription_service.dart';
+import 'core/services/subscription/subscription_manager.dart';
+import 'core/services/analytics/firebase_analytics_service.dart';
+import 'core/services/analytics/analytics_manager.dart';
+import 'core/services/startup/startup_manager.dart';
+import 'core/services/startup/app_lifecycle_manager.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'presentation/screens/no_internet_screen.dart';
+import 'presentation/screens/splash_screen.dart';
 import 'presentation/onboarding/onboarding_screen.dart';
 
 void main() async {
+  final startupTimer = Stopwatch()..start();
+
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Lock orientation to portrait only on mobile devices
   final isMobile = Platform.isIOS || Platform.isAndroid;
+  final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+
+  // PHASE 1: Critical platform setup (must be sequential)
+  await _setupPlatform(isMobile, isDesktop);
+
+  // PHASE 2: Parallel initialization of core services
+  await _initializeCoreServices(isMobile);
+
+  // PHASE 3: Setup dependency injection
+  await setupDependencies();
+
+  startupTimer.stop();
+  debugPrint('🚀 Startup completed in ${startupTimer.elapsedMilliseconds}ms');
+
+  // Log startup performance
+  FirebaseAnalyticsService.instance.logStartupPerformance(
+    totalDurationMs: startupTimer.elapsedMilliseconds,
+    taskDurations: StartupManager.instance.taskTimes.map(
+      (key, value) => MapEntry(key, value.inMilliseconds),
+    ),
+  );
+
+  runApp(const MyApp());
+
+  // PHASE 4: Deferred initialization (after app starts)
+  _runDeferredTasks(isMobile);
+}
+
+/// Setup platform-specific configuration
+Future<void> _setupPlatform(bool isMobile, bool isDesktop) async {
   if (isMobile) {
+    // Lock orientation
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
   }
 
-  // Setup window for desktop platforms
-  final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
   if (isDesktop) {
     await windowManager.ensureInitialized();
-
     const windowOptions = WindowOptions(
       size: Size(400, 800),
       minimumSize: Size(360, 720),
@@ -40,44 +77,75 @@ void main() async {
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
     );
-
     windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
       await windowManager.setPreventClose(true);
     });
   }
+}
 
-  // Initialize Supabase (if configured)
-  if (SupabaseConfig.isConfigured) {
-    try {
-      await Supabase.initialize(
-        url: SupabaseConfig.supabaseUrl,
-        anonKey: SupabaseConfig.supabaseAnonKey,
-      );
-      debugPrint('Supabase initialized successfully');
-    } catch (e) {
-      debugPrint('Failed to initialize Supabase: $e');
-      // App will fall back to direct API calls
-    }
-  } else {
-    debugPrint('Supabase not configured, using direct API calls');
+/// Initialize core services in parallel for faster startup
+Future<void> _initializeCoreServices(bool isMobile) async {
+  final futures = <Future<void>>[];
+
+  // Firebase (mobile only)
+  if (isMobile) {
+    futures.add(_initFirebase());
   }
 
-  // Setup dependency injection
-  await setupDependencies();
+  // Supabase (if configured)
+  if (SupabaseConfig.isConfigured) {
+    futures.add(_initSupabase());
+  }
 
-  // Initialize RevenueCat SDK (only on mobile platforms)
-  // if (isMobile) {
-  //   try {
-  //     await RevenueCatPurchasesService.init();
-  //   } catch (e) {
-  //     // Log error but don't prevent app from launching
-  //     debugPrint('Failed to initialize RevenueCat: $e');
-  //   }
-  // }
+  // Wait for all parallel initializations
+  await Future.wait(futures);
+}
 
-  runApp(const MyApp());
+Future<void> _initFirebase() async {
+  try {
+    final timer = Stopwatch()..start();
+    await Firebase.initializeApp();
+    await FirebaseAnalyticsService.instance.init();
+    timer.stop();
+    debugPrint('✓ Firebase initialized in ${timer.elapsedMilliseconds}ms');
+  } catch (e) {
+    debugPrint('✗ Firebase initialization failed: $e');
+  }
+}
+
+Future<void> _initSupabase() async {
+  try {
+    final timer = Stopwatch()..start();
+    await Supabase.initialize(
+      url: SupabaseConfig.supabaseUrl,
+      anonKey: SupabaseConfig.supabaseAnonKey,
+    );
+    timer.stop();
+    debugPrint('✓ Supabase initialized in ${timer.elapsedMilliseconds}ms');
+  } catch (e) {
+    debugPrint('✗ Supabase initialization failed: $e');
+  }
+}
+
+/// Run deferred tasks after app has started
+void _runDeferredTasks(bool isMobile) {
+  // Delay to ensure app is fully rendered
+  Future.delayed(const Duration(milliseconds: 500), () async {
+    // Initialize RevenueCat (can be deferred on mobile)
+    if (isMobile) {
+      try {
+        await SubscriptionService.instance.init();
+        debugPrint('✓ RevenueCat initialized (deferred)');
+      } catch (e) {
+        debugPrint('✗ RevenueCat initialization failed: $e');
+      }
+    }
+
+    // Start analytics session
+    getIt<AnalyticsManager>().startSession();
+  });
 }
 
 class MyApp extends StatefulWidget {
@@ -87,8 +155,9 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final AppTheme _appTheme;
+  bool _showSplash = true;
   bool _showOnboarding = true;
   bool _checkingOnboarding = true;
   bool _noInternet = false;
@@ -96,14 +165,44 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _appTheme = getIt<AppTheme>();
     _appTheme.addListener(_onThemeChanged);
+
+    // Initialize lifecycle manager
+    AppLifecycleManager.instance.init();
+
     _checkInitialState();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        AppLifecycleManager.instance.onForeground();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        AppLifecycleManager.instance.onBackground();
+        // End analytics session when backgrounded
+        getIt<AnalyticsManager>().endSession();
+        break;
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
   Future<void> _checkInitialState() async {
-    final onboardingService = OnboardingService();
-    final completed = await onboardingService.isOnboardingCompleted();
+    // Run checks in parallel for speed
+    final futures = await Future.wait([
+      _checkOnboardingStatus(),
+      _preloadData(),
+    ]);
+
+    final completed = futures[0] as bool;
 
     // If first time user (onboarding not completed), check internet
     if (!completed) {
@@ -122,6 +221,37 @@ class _MyAppState extends State<MyApp> {
         _showOnboarding = !completed;
         _checkingOnboarding = false;
         _noInternet = false;
+      });
+    }
+  }
+
+  Future<bool> _checkOnboardingStatus() async {
+    final onboardingService = OnboardingService();
+    return await onboardingService.isOnboardingCompleted();
+  }
+
+  Future<void> _preloadData() async {
+    // Pre-initialize sync service for returning users
+    // This runs during splash, so data is ready when dashboard loads
+    try {
+      final onboardingService = OnboardingService();
+      final completed = await onboardingService.isOnboardingCompleted();
+
+      if (completed) {
+        // For returning users, start loading data immediately
+        final syncService = getIt<CurrencySyncService>();
+        await syncService.initialize(isFirstTime: false);
+      }
+    } catch (e) {
+      debugPrint('Preload data failed: $e');
+    }
+  }
+
+  /// Called when splash screen animation completes
+  void _onSplashComplete() {
+    if (mounted) {
+      setState(() {
+        _showSplash = false;
       });
     }
   }
@@ -148,10 +278,13 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _showOnboarding = false;
     });
+    // Mark that paywall was shown during onboarding so we don't show again immediately
+    SubscriptionManager.instance.markPaywallShownThisSession();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _appTheme.removeListener(_onThemeChanged);
     super.dispose();
   }
@@ -230,16 +363,54 @@ class _MyAppState extends State<MyApp> {
           }),
         ),
       ),
-      home: _checkingOnboarding
-          ? _buildLoadingScreen()
-          : _noInternet
-              ? NoInternetScreen(
-                  appTheme: _appTheme,
-                  onRetry: _onRetryInternet,
-                )
-              : _showOnboarding
-                  ? OnboardingScreen(onComplete: _onOnboardingComplete)
-                  : const DashboardScreen(),
+      home: _buildHome(),
+    );
+  }
+
+  Widget _buildHome() {
+    // Show splash screen first
+    if (_showSplash) {
+      // Shorter splash for returning users (data preloaded)
+      final duration = _showOnboarding
+          ? const Duration(milliseconds: 2000)
+          : const Duration(milliseconds: 1200);
+
+      return SplashScreen(
+        onAnimationComplete: _onSplashComplete,
+        minimumDisplayDuration: duration,
+      );
+    }
+
+    // Still checking onboarding status
+    if (_checkingOnboarding) {
+      return _buildLoadingScreen();
+    }
+
+    // No internet for first-time users
+    if (_noInternet) {
+      return NoInternetScreen(
+        appTheme: _appTheme,
+        onRetry: _onRetryInternet,
+      );
+    }
+
+    // Show onboarding or main app with fade transition
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: child,
+        );
+      },
+      child: _showOnboarding
+          ? OnboardingScreen(
+              key: const ValueKey('onboarding'),
+              onComplete: _onOnboardingComplete,
+            )
+          : const DashboardScreen(key: ValueKey('dashboard')),
     );
   }
 

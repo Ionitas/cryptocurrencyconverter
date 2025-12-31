@@ -12,10 +12,9 @@ import '../services/analytics/analytics_manager.dart';
 import '../services/config/config_service.dart';
 import '../services/storage/storage_service.dart';
 import '../services/currency_sync_service.dart';
+import '../services/subscription/subscription_service.dart';
+import '../services/subscription/subscription_manager.dart';
 import '../theme/app_theme.dart';
-// import '../../subscription/core/subscription_service.dart';
-// import '../../subscription/core/subscription_manager.dart';
-// import '../../subscription/view/price_buttons/controller/subscription_price_buttons_controller.dart';
 
 /// Global GetIt instance for dependency injection
 final getIt = GetIt.instance;
@@ -67,24 +66,9 @@ Future<void> setupDependencies() async {
   );
 
   // Subscription Services
-  // getIt.registerLazySingleton<SubscriptionService>(() => SubscriptionService());
+  getIt.registerSingleton<SubscriptionService>(SubscriptionService.instance);
+  getIt.registerSingleton<SubscriptionManager>(SubscriptionManager.instance);
 
-  // // Register price buttons controller (depends on subscription service state)
-  // getIt.registerLazySingleton<SubscriptionPriceButtonsController>(
-  //   () => SubscriptionPriceButtonsController(
-  //     subscriptionState: getIt<SubscriptionService>().state,
-  //   ),
-  // );
-
-  // // Register subscription manager
-  // getIt.registerLazySingleton<SubscriptionManager>(
-  //   () => SubscriptionManager(
-  //     subscriptionState: getIt<SubscriptionService>().state,
-  //     configService: getIt<ConfigService>(),
-  //     storageService: getIt<StorageService>(),
-  //     analyticsManager: getIt<AnalyticsManager>(),
-  //     subscriptionPriceButtonsController:
-  //         getIt<SubscriptionPriceButtonsController>(),
-  //   ),
-  // );
+  // Initialize subscription manager
+  await SubscriptionManager.instance.init();
 }

@@ -9,9 +9,10 @@ import '../../core/services/onboarding_service.dart';
 import '../../core/services/portfolio_storage_service.dart';
 import '../../core/services/currency_sync_service.dart';
 import '../../core/services/analytics/logging_system.dart';
-// import '../../subscription/core/subscription_service.dart';
-// import '../../subscription/view/layout_widgets/view/simpleOffer_paywall.dart';
+import '../../core/services/subscription/subscription_manager.dart';
 import '../widgets/widgets.dart';
+import '../widgets/subscription_paywall.dart';
+import '../widgets/upgrade_to_premium_widget.dart';
 import '../utils/calculator_logic.dart';
 import '../utils/snackbar_helper.dart';
 
@@ -515,6 +516,18 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   void _showAddCurrencyPicker() {
+    // Check subscription limit before showing picker
+    final currentCount = _displayCurrencySymbols.length;
+    if (!SubscriptionManager.instance.canAddMoreCurrencies(currentCount)) {
+      // Show paywall instead
+      SubscriptionPaywall.show(context).then((subscribed) {
+        if (subscribed && mounted) {
+          setState(() {}); // Refresh UI to show add button
+        }
+      });
+      return;
+    }
+
     final availableCurrencies = _allCurrencies
         .where((c) =>
             !_displayCurrencySymbols.contains(c.symbol) &&
@@ -546,74 +559,6 @@ class ConverterScreenState extends State<ConverterScreen>
       userCountryFlag: _userCountryFlag,
       userCurrencyCode: _userCurrencyCode,
     );
-  }
-
-  Future<void> _showPaywall() async {
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: CircularProgressIndicator(
-          color: _appTheme.primary,
-        ),
-      ),
-    );
-
-    try {
-      // Initialize subscription service if not already done
-      // final subscriptionService = getIt<SubscriptionService>();
-      // await subscriptionService.init();
-
-      // Close loading indicator
-      if (mounted) Navigator.of(context).pop();
-
-      // Check if packages are available
-      // bool hasPackages = subscriptionService.state.weeklyPackage != null ||
-      //     subscriptionService.state.monthlyPackage != null ||
-      //     subscriptionService.state.annualPackage != null;
-      // hasPackages = false;
-      // if (!hasPackages) {
-      //   debugPrint(
-      //       'Warning: Some subscription packages are not available. This may be due to App Store Connect configuration.');
-      //   // Show warning but continue to paywall for development/testing
-      //   if (mounted) {
-      //     SnackBarHelper.show(
-      //       context: context,
-      //       message:
-      //           'Note: Some products may not be available due to App Store Connect setup.',
-      //       appTheme: _appTheme,
-      //       type: SnackBarType.warning,
-      //     );
-      //   }
-      // }
-
-      // Show paywall (even if packages aren't fully configured, for testing)
-      // if (mounted) {
-      //   showDialog(
-      //     context: context,
-      //     barrierDismissible: false,
-      //     builder: (context) => const Dialog(
-      //       backgroundColor: Colors.transparent,
-      //       insetPadding: EdgeInsets.zero,
-      //       child: SimplePaywallWidget(),
-      //     ),
-      //   );
-      // }
-    } catch (e) {
-      // Close loading indicator
-      if (mounted) Navigator.of(context).pop();
-
-      // Show error message
-      if (mounted) {
-        SnackBarHelper.show(
-          context: context,
-          message: 'Failed to load subscription options: ${e.toString()}',
-          appTheme: _appTheme,
-          type: SnackBarType.error,
-        );
-      }
-    }
   }
 
   @override
@@ -826,13 +771,16 @@ class ConverterScreenState extends State<ConverterScreen>
           sliver: SliverToBoxAdapter(
             child: Column(
               children: [
-                AddCurrencyCard(
-                    appTheme: _appTheme, onTap: _showAddCurrencyPicker),
-                const SizedBox(height: 8),
-                PremiumCard(
-                  appTheme: _appTheme,
-                  onUpgrade: _showPaywall,
-                ),
+                // Show upgrade widget when limit reached, otherwise add button
+                if (!SubscriptionManager.instance
+                    .canAddMoreCurrencies(_displayCurrencySymbols.length))
+                  UpgradeToPremiumWidget(
+                    message: 'Add unlimited currencies',
+                    onUpgraded: () => setState(() {}),
+                  )
+                else
+                  AddCurrencyCard(
+                      appTheme: _appTheme, onTap: _showAddCurrencyPicker),
                 SizedBox(height: bottomSpacing),
               ],
             ),

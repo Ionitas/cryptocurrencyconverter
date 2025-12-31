@@ -6,11 +6,17 @@ import '../../core/theme/app_theme.dart';
 class WelcomePage extends StatefulWidget {
   final AppTheme appTheme;
   final VoidCallback onContinue;
+  final bool isDataLoading;
+  final String loadingStatus;
+  final int currencyCount;
 
   const WelcomePage({
     super.key,
     required this.appTheme,
     required this.onContinue,
+    this.isDataLoading = false,
+    this.loadingStatus = '',
+    this.currencyCount = 0,
   });
 
   @override
@@ -85,14 +91,6 @@ class _WelcomePageState extends State<WelcomePage>
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        appTheme.primary,
-                        appTheme.accent,
-                      ],
-                    ),
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
@@ -102,10 +100,14 @@ class _WelcomePageState extends State<WelcomePage>
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.currency_exchange_rounded,
-                    color: Colors.white,
-                    size: 60,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: Image.asset(
+                      'assets/images/icon.png',
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
@@ -129,20 +131,28 @@ class _WelcomePageState extends State<WelcomePage>
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'Currency Converter',
-                      style: TextStyle(
-                        color: appTheme.textPrimary,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Currency Converter',
+                          style: TextStyle(
+                            color: appTheme.textPrimary,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Text(
                         'The easiest way to convert currencies and track exchange rates worldwide',
                         textAlign: TextAlign.center,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: appTheme.textSecondary,
                           fontSize: 16,
@@ -157,6 +167,14 @@ class _WelcomePageState extends State<WelcomePage>
 
             const Spacer(flex: 3),
 
+            // Loading status indicator
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: _buildLoadingStatus(appTheme),
+            ),
+
+            const SizedBox(height: 24),
+
             // Get Started button
             FadeTransition(
               opacity: _fadeAnimation,
@@ -167,6 +185,55 @@ class _WelcomePageState extends State<WelcomePage>
           ],
         );
       },
+    );
+  }
+
+  Widget _buildLoadingStatus(AppTheme appTheme) {
+    if (widget.loadingStatus.isEmpty) {
+      return const SizedBox(height: 20);
+    }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        key: ValueKey(widget.loadingStatus),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: appTheme.surfaceLight.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.isDataLoading) ...[
+              SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: appTheme.accent,
+                ),
+              ),
+              const SizedBox(width: 10),
+            ] else if (widget.currencyCount > 0) ...[
+              Icon(
+                Icons.check_circle_rounded,
+                size: 16,
+                color: appTheme.success,
+              ),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              widget.loadingStatus,
+              style: TextStyle(
+                color: appTheme.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

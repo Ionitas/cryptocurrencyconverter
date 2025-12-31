@@ -7,8 +7,11 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/currency_sync_service.dart';
 import '../../../core/services/onboarding_service.dart';
 import '../../../core/services/analytics/logging_system.dart';
+import '../../../core/services/subscription/subscription_manager.dart';
 import '../../utils/snackbar_helper.dart';
 import '../../widgets/settings_dialog.dart';
+import '../../widgets/subscription_paywall.dart';
+import '../../widgets/upgrade_to_premium_widget.dart';
 import 'portfolio_controller.dart';
 import 'widgets/widgets.dart';
 import 'widgets/add_portfolio_entry_modal.dart';
@@ -21,7 +24,8 @@ class PortfolioScreen extends StatefulWidget {
   State<PortfolioScreen> createState() => PortfolioScreenState();
 }
 
-class PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProviderStateMixin {
+class PortfolioScreenState extends State<PortfolioScreen>
+    with SingleTickerProviderStateMixin {
   late final PortfolioController _controller;
   final AppTheme _appTheme = getIt<AppTheme>();
   final CurrencySyncService _syncService = getIt<CurrencySyncService>();
@@ -178,6 +182,18 @@ class PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProvi
   }
 
   void _showAddEntryModal() {
+    // Check subscription limit before showing modal
+    final currentCount = _controller.entryCount;
+    if (!SubscriptionManager.instance.canAddMoreAssets(currentCount)) {
+      // Show paywall instead
+      SubscriptionPaywall.show(context).then((subscribed) {
+        if (subscribed && mounted) {
+          setState(() {}); // Refresh UI to show add button
+        }
+      });
+      return;
+    }
+
     AddPortfolioEntryModal.show(
       context: context,
       allCurrencies: _controller.allCurrencies,
@@ -374,12 +390,19 @@ class PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProvi
                 )
               : _buildEntriesList(horizontalPadding),
         ),
-        // Add button (only show when there are entries)
+        // Show upgrade widget when limit reached, otherwise add button
         if (_controller.entries.isNotEmpty)
-          PortfolioAddButton(
-            appTheme: _appTheme,
-            onTap: _showAddEntryModal,
-          ),
+          if (!SubscriptionManager.instance
+              .canAddMoreAssets(_controller.entryCount))
+            UpgradeToPremiumWidget(
+              message: 'Add unlimited assets',
+              onUpgraded: () => setState(() {}),
+            )
+          else
+            PortfolioAddButton(
+              appTheme: _appTheme,
+              onTap: _showAddEntryModal,
+            ),
       ],
     );
   }
@@ -398,7 +421,8 @@ class PortfolioScreenState extends State<PortfolioScreen> with SingleTickerProvi
           convertedAmount: convertedAmount,
           appTheme: _appTheme,
           formatAmount: _controller.formatAmount,
-          onAmountChanged: (newAmount) => _controller.updateEntryAmount(entry.id, newAmount),
+          onAmountChanged: (newAmount) =>
+              _controller.updateEntryAmount(entry.id, newAmount),
           onRemove: () => _removeEntry(entry.id),
         );
       },

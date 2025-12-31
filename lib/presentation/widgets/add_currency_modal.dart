@@ -37,7 +37,8 @@ class AddCurrencyModal extends StatefulWidget {
           child: Container(
             decoration: BoxDecoration(
               color: appTheme.surface.withOpacity(0.85),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(
                 color: Colors.white.withOpacity(0.1),
                 width: 1,
@@ -85,7 +86,9 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
       } else {
         final lowerQuery = query.toLowerCase();
         _filteredCurrencies = widget.availableCurrencies.where((c) {
-          return c.name.toLowerCase().contains(lowerQuery) ||
+          // Case-insensitive search across code, name, and symbol
+          return c.code.toLowerCase().contains(lowerQuery) ||
+              c.name.toLowerCase().contains(lowerQuery) ||
               c.symbol.toLowerCase().contains(lowerQuery);
         }).toList();
       }
@@ -174,10 +177,7 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
                           appTheme: _appTheme,
                           onTap: () {
                             widget.onAdd(currency);
-                            setState(() {
-                              _filteredCurrencies =
-                                  _filteredCurrencies.where((c) => c.id != currency.id).toList();
-                            });
+                            Navigator.pop(context);
                           },
                         );
                       },
@@ -323,7 +323,8 @@ class _CurrencyListItem extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: appTheme.primary.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(10),

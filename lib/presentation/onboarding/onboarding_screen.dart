@@ -7,6 +7,7 @@ import '../../core/di/injection.dart';
 import '../../core/services/onboarding_service.dart';
 import '../../core/services/geolocation_service.dart';
 import '../../core/services/currency_sync_service.dart';
+import '../../core/services/analytics/analytics_manager.dart';
 import 'welcome_page.dart';
 import 'features_page.dart';
 import 'country_selection_page.dart';
@@ -48,6 +49,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   UserPurpose? _selectedPurpose;
   bool _locationDetectionComplete = false;
   bool _dataFetchStarted = false;
+  bool _dataLoaded = false;
+  int _loadedCurrencyCount = 0;
+  String _loadingStatus = 'Preparing...';
 
   // Default country if detection fails
   static const CountryInfo _defaultCountry = CountryInfo(
@@ -64,6 +68,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    // Log onboarding begin
+    getIt<AnalyticsManager>().logOnboardingBegin();
 
     // Start background location detection and data fetch immediately
     _detectLocationInBackground();
@@ -83,10 +90,31 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _dataFetchStarted = true;
 
     try {
+      if (mounted) {
+        setState(() {
+          _loadingStatus = 'Fetching exchange rates...';
+        });
+      }
+
       // Initialize sync service with isFirstTime=true to fetch fresh data
-      await _syncService.initialize(isFirstTime: true);
+      final result = await _syncService.initialize(isFirstTime: true);
+
+      if (mounted) {
+        setState(() {
+          _dataLoaded = result.success;
+          _loadedCurrencyCount = result.currencies.length;
+          _loadingStatus = result.success
+              ? '${result.currencies.length} currencies loaded'
+              : 'Ready to go';
+        });
+      }
     } catch (e) {
       debugPrint('Failed to fetch data during onboarding: $e');
+      if (mounted) {
+        setState(() {
+          _loadingStatus = 'Will sync when ready';
+        });
+      }
       // Continue even if failed - will retry later
     }
   }
@@ -150,6 +178,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Future<void> _completeOnboarding() async {
+    // Log onboarding complete
+    getIt<AnalyticsManager>().logOnboardingComplete();
+
     // Save onboarding data
     await _onboardingService.saveOnboardingData(
       OnboardingData(
@@ -159,6 +190,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         completed: true,
       ),
     );
+
+    // Set user country in analytics
+    if (_selectedCountry != null) {
+      getIt<AnalyticsManager>().setUserCountry(_selectedCountry!.code);
+    }
 
     widget.onComplete();
   }
@@ -198,6 +234,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   WelcomePage(
                     appTheme: _appTheme,
                     onContinue: _goToNextPage,
+                    isDataLoading: _dataFetchStarted && !_dataLoaded,
+                    loadingStatus: _loadingStatus,
+                    currencyCount: _loadedCurrencyCount,
                   ),
 
                   // Page 1: Features
@@ -225,7 +264,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     appTheme: _appTheme,
                     onClose: _completeOnboarding,
                     onSubscribe: () {
-                      // TODO: Implement subscription
+                      // Subscription was successful
                       _completeOnboarding();
                     },
                   ),

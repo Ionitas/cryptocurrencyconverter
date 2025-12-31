@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/analytics/tracking_service.dart';
+import '../../core/services/analytics/firebase_analytics_service.dart';
 
 /// Feature item data
 class FeatureItem {
@@ -268,14 +272,29 @@ class _FeaturesPageState extends State<FeaturesPage>
     );
   }
 
+  /// Handle continue button tap - request tracking permission then continue
+  Future<void> _handleContinue() async {
+    HapticFeedback.mediumImpact();
+
+    // Log screen view
+    await FirebaseAnalyticsService.instance.logScreenView(
+      screenName: 'onboarding_features',
+    );
+
+    // Request App Tracking Transparency permission on iOS
+    if (Platform.isIOS) {
+      await TrackingService.instance.requestTrackingAuthorization();
+    }
+
+    // Continue to next page
+    widget.onContinue();
+  }
+
   Widget _buildContinueButton(AppTheme appTheme) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: GestureDetector(
-        onTap: () {
-          HapticFeedback.mediumImpact();
-          widget.onContinue();
-        },
+        onTap: _handleContinue,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 18),

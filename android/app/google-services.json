@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "355422990462",
+    "project_id": "cryptoconvertercurrencyassets",
+    "storage_bucket": "cryptoconvertercurrencyassets.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:355422990462:android:e55b3d70839640e40d682f",
+        "android_client_info": {
+          "package_name": "com.example.cryptocurrencyconverter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHUFduO7KiVwq44P1v1YnxbTo37bhh_PM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
