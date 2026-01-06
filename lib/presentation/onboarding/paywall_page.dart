@@ -36,8 +36,10 @@ class _PaywallPageState extends State<PaywallPage>
   final SubscriptionService _subscriptionService = SubscriptionService.instance;
 
   // URL placeholders - will be updated by user
-  static const String _termsUrl = 'https://example.com/terms';
-  static const String _privacyUrl = 'https://example.com/privacy';
+  static const String _termsUrl =
+      'hhttps://currencycryptofiat.netlify.app/TermsConditions.md';
+  static const String _privacyUrl =
+      'https://currencycryptofiat.netlify.app/privacypolicy/';
 
   bool _isLoading = false;
   Package? _selectedPackage;
@@ -304,12 +306,6 @@ class _PaywallPageState extends State<PaywallPage>
                     Icons.sync_rounded,
                     'Live Rates',
                     'Real-time exchange updates',
-                  ),
-                  _buildFeatureItem(
-                    appTheme,
-                    Icons.remove_circle_outline,
-                    'Ad-Free Experience',
-                    'No interruptions, ever',
                   ),
 
                   const SizedBox(height: 20),

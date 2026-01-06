@@ -58,8 +58,10 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
   final SubscriptionService _subscriptionService = SubscriptionService.instance;
 
   // URL placeholders - will be updated by user
-  static const String _termsUrl = 'https://example.com/terms';
-  static const String _privacyUrl = 'https://example.com/privacy';
+  static const String _termsUrl =
+      'hhttps://currencycryptofiat.netlify.app/TermsConditions.md';
+  static const String _privacyUrl =
+      'https://currencycryptofiat.netlify.app/privacypolicy/';
 
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
