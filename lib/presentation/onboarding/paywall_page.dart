@@ -37,7 +37,7 @@ class _PaywallPageState extends State<PaywallPage>
 
   // URL placeholders - will be updated by user
   static const String _termsUrl =
-      'hhttps://currencycryptofiat.netlify.app/TermsConditions.md';
+      'https://currencycryptofiat.netlify.app/termscondition';
   static const String _privacyUrl =
       'https://currencycryptofiat.netlify.app/privacypolicy/';
 
