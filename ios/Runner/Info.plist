@@ -2,9 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- ============================================== -->
-	<!-- APP IDENTIFICATION & NAMING (ASO OPTIMIZED) -->
-	<!-- ============================================== -->
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -38,10 +35,6 @@
 			</array>
 		</dict>
 	</array>
-
-	<!-- ============================================== -->
-	<!-- APP TRANSPORT SECURITY -->
-	<!-- ============================================== -->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -73,58 +66,20 @@
 			</dict>
 		</dict>
 	</dict>
-
-	<!-- ============================================== -->
-	<!-- PRIVACY DESCRIPTIONS (REQUIRED FOR APP STORE) -->
-	<!-- ============================================== -->
 	<key>NSUserTrackingUsageDescription</key>
 	<string>We use this to measure advertising effectiveness and improve your experience with personalized content.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Camera access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Photo library access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Photo library access is not required for this app. This permission is reserved for future features.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Your location helps us suggest relevant currencies based on your country.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Your location helps us suggest relevant currencies based on your country.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Your location helps us suggest relevant currencies based on your country.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Microphone access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>Contacts access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>Calendar access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSRemindersUsageDescription</key>
-	<string>Reminders access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>Motion access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSSiriUsageDescription</key>
-	<string>Siri can help you quickly convert currencies using voice commands.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Face ID is used to securely authenticate and protect your portfolio data.</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Bluetooth access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Bluetooth access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSAppleMusicUsageDescription</key>
-	<string>Apple Music access is not required for this app. This permission is reserved for future features.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Speech recognition can be used for voice-activated currency conversion.</string>
-
-	<!-- ============================================== -->
-	<!-- SKADNETWORK FOR ADS ATTRIBUTION -->
-	<!-- ============================================== -->
 	<key>SKAdNetworkItems</key>
 	<array>
-		<!-- Google -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>cstr6suwn9.skadnetwork</string>
 		</dict>
-		<!-- Meta/Facebook -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>v9wrttp9kq.skadnetwork</string>
@@ -133,42 +88,34 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>n38lu8286q.skadnetwork</string>
 		</dict>
-		<!-- Apple Search Ads -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>4pfyvq9l8p.skadnetwork</string>
 		</dict>
-		<!-- Unity -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>4dzt52r2t5.skadnetwork</string>
 		</dict>
-		<!-- AppLovin -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>22mmun2rn5.skadnetwork</string>
 		</dict>
-		<!-- IronSource -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>su67r6k2v3.skadnetwork</string>
 		</dict>
-		<!-- AdColony -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>424m5254lk.skadnetwork</string>
 		</dict>
-		<!-- Chartboost -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>kbd757ywx3.skadnetwork</string>
 		</dict>
-		<!-- InMobi -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>2fnua5tdw4.skadnetwork</string>
 		</dict>
-		<!-- Pangle/TikTok -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>238da6jt44.skadnetwork</string>
@@ -177,32 +124,26 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>22scbeg5km.skadnetwork</string>
 		</dict>
-		<!-- Moloco -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>9t245vhmpl.skadnetwork</string>
 		</dict>
-		<!-- Remerge -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>8s468mfl3y.skadnetwork</string>
 		</dict>
-		<!-- Liftoff/Vungle -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>gd9vwv8r4l.skadnetwork</string>
 		</dict>
-		<!-- Criteo -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>hs6bdukanm.skadnetwork</string>
 		</dict>
-		<!-- Tapjoy -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>yclnxrl5pm.skadnetwork</string>
 		</dict>
-		<!-- Additional Networks -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>578prtvx9j.skadnetwork</string>
@@ -312,10 +253,6 @@
 			<string>v72qych5uu.skadnetwork</string>
 		</dict>
 	</array>
-
-	<!-- ============================================== -->
-	<!-- DEVICE CAPABILITIES -->
-	<!-- ============================================== -->
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -323,11 +260,7 @@
 		<string>armv7</string>
 	</array>
 	<key>MinimumOSVersion</key>
-	<string>12.0</string>
-
-	<!-- ============================================== -->
-	<!-- ORIENTATION SUPPORT -->
-	<!-- ============================================== -->
+	<string>15.0</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -341,10 +274,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-
-	<!-- ============================================== -->
-	<!-- LAUNCH SCREEN & STORYBOARD -->
-	<!-- ============================================== -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -356,10 +285,6 @@
 		<key>UIImageName</key>
 		<string>LaunchImage</string>
 	</dict>
-
-	<!-- ============================================== -->
-	<!-- SCENE MANIFEST (iOS 13+) -->
-	<!-- ============================================== -->
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -381,10 +306,6 @@
 			</array>
 		</dict>
 	</dict>
-
-	<!-- ============================================== -->
-	<!-- STATUS BAR & APPEARANCE -->
-	<!-- ============================================== -->
 	<key>UIStatusBarHidden</key>
 	<false/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
@@ -393,10 +314,6 @@
 	<string>UIStatusBarStyleDefault</string>
 	<key>UIUserInterfaceStyle</key>
 	<string>Automatic</string>
-
-	<!-- ============================================== -->
-	<!-- PERFORMANCE OPTIMIZATIONS -->
-	<!-- ============================================== -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
@@ -405,48 +322,19 @@
 	<false/>
 	<key>UILibrariesRequireEntitlements</key>
 	<false/>
-
-	<!-- ============================================== -->
-	<!-- BACKGROUND MODES (DISABLED - ENABLE IF NEEDED) -->
-	<!-- ============================================== -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
-
-	<!-- ============================================== -->
-	<!-- ASSOCIATED DOMAINS FOR UNIVERSAL LINKS -->
-	<!-- ============================================== -->
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:currencycryptofiat.netlify.app</string>
 	</array>
-
-	<!-- ============================================== -->
-	<!-- APP CLIPS SUPPORT (OPTIONAL) -->
-	<!-- ============================================== -->
-	<!-- Uncomment if you want to add App Clips
-	<key>NSAppClip</key>
-	<dict>
-		<key>NSAppClipRequestEphemeralUserNotification</key>
-		<false/>
-		<key>NSAppClipRequestLocationConfirmation</key>
-		<false/>
-	</dict>
-	-->
-
-	<!-- ============================================== -->
-	<!-- SIRI INTEGRATION -->
-	<!-- ============================================== -->
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>com.currencyx.app.convert</string>
 	</array>
-
-	<!-- ============================================== -->
-	<!-- APP STORE RATING PROMPT -->
-	<!-- ============================================== -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>
