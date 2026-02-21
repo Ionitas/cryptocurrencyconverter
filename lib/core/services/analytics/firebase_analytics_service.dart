@@ -160,6 +160,125 @@ class FirebaseAnalyticsService {
     }
   }
 
+  /// Log GA4 e-commerce purchase event for conversion tracking
+  /// This event is automatically synced to Google Ads when Firebase is linked
+  Future<void> logEcommercePurchase({
+    required String transactionId,
+    required double value,
+    required String currency,
+    required List<Map<String, Object>> items,
+    String? coupon,
+    double? shipping,
+    double? tax,
+  }) async {
+    if (!_isInitialized || _analytics == null) return;
+
+    try {
+      await _analytics!.logEvent(
+        name: 'purchase',
+        parameters: {
+          'transaction_id': transactionId,
+          'value': value,
+          'currency': currency,
+          if (coupon != null) 'coupon': coupon,
+          if (shipping != null) 'shipping': shipping,
+          if (tax != null) 'tax': tax,
+          'items': items,
+        },
+      );
+      AppLogger.s('FirebaseAnalytics',
+          'E-commerce purchase: $value $currency ($transactionId)');
+    } catch (e) {
+      AppLogger.e('FirebaseAnalytics', 'Failed to log e-commerce purchase',
+          error: e);
+    }
+  }
+
+  /// Log subscription purchase for GA4 conversions
+  Future<void> logSubscriptionPurchase({
+    required String productId,
+    required String productName,
+    required double price,
+    required String currency,
+    required String subscriptionPeriod,
+    required bool hasFreeTrial,
+    String? transactionId,
+  }) async {
+    if (!_isInitialized || _analytics == null) return;
+
+    try {
+      final items = [
+        {
+          'item_id': productId,
+          'item_name': productName,
+          'item_category': 'Subscription',
+          'price': price,
+          'quantity': 1,
+        }
+      ];
+
+      await _analytics!.logEvent(
+        name: 'purchase',
+        parameters: {
+          if (transactionId != null) 'transaction_id': transactionId,
+          'value': price,
+          'currency': currency,
+          'items': items,
+        },
+      );
+
+      await _analytics!.logEvent(
+        name: 'subscription_purchase',
+        parameters: {
+          'product_id': productId,
+          'product_name': productName,
+          'price': price,
+          'currency': currency,
+          'subscription_period': subscriptionPeriod,
+          'has_free_trial': hasFreeTrial ? 1 : 0,
+        },
+      );
+
+      AppLogger.s('FirebaseAnalytics',
+          'Subscription purchase: $productId - $price $currency');
+    } catch (e) {
+      AppLogger.e('FirebaseAnalytics', 'Failed to log subscription purchase',
+          error: e);
+    }
+  }
+
+  /// Log trial started event
+  Future<void> logTrialStarted({
+    required String productId,
+    required String productName,
+    required String currency,
+    required String subscriptionPeriod,
+  }) async {
+    await logEvent(
+      name: 'trial_started',
+      parameters: {
+        'product_id': productId,
+        'product_name': productName,
+        'currency': currency,
+        'subscription_period': subscriptionPeriod,
+      },
+    );
+  }
+
+  /// Log trial converted to paid subscription
+  Future<void> logTrialConverted({
+    required String productId,
+    required String currency,
+  }) async {
+    await logEvent(
+      name: 'trial_converted',
+      parameters: {
+        'product_id': productId,
+        'currency': currency,
+      },
+    );
+  }
+
   /// Log currency conversion
   Future<void> logCurrencyConversion({
     required String fromCurrency,

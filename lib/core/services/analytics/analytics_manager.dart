@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
+import 'conversion_tracking_service.dart';
 import 'firebase_analytics_service.dart';
 import 'tracking_service.dart';
 import 'logging_system.dart';
@@ -10,6 +12,8 @@ class AnalyticsManager {
   final FirebaseAnalyticsService _firebaseAnalytics =
       FirebaseAnalyticsService.instance;
   final TrackingService _trackingService = TrackingService.instance;
+  final ConversionTrackingService _conversionTracking =
+      ConversionTrackingService.instance;
 
   // Session tracking
   int _sessionNumber = 0;
@@ -19,6 +23,7 @@ class AnalyticsManager {
   Future<void> init() async {
     try {
       await _firebaseAnalytics.init();
+      await _conversionTracking.init();
       AppLogger.s('AnalyticsManager', 'Initialized');
     } catch (e) {
       AppLogger.e('AnalyticsManager', 'Failed to initialize', error: e);
@@ -57,7 +62,33 @@ class AnalyticsManager {
   // PURCHASE & SUBSCRIPTION ANALYTICS
   // =============================================
 
-  /// Log a successful purchase event
+  /// Log a successful purchase event with full conversion tracking
+  /// This tracks to Firebase/GA4, Google Ads (via Firebase link), and SKAdNetwork
+  Future<void> logSuccessfulPurchase({
+    required Package package,
+    required CustomerInfo customerInfo,
+  }) async {
+    await _conversionTracking.trackPurchase(
+      package: package,
+      customerInfo: customerInfo,
+    );
+
+    if (kDebugMode) {
+      debugPrint('Purchase tracked with conversion: ${package.identifier}');
+    }
+  }
+
+  /// Log trial started event
+  Future<void> logTrialStarted({required Package package}) async {
+    await _conversionTracking.trackTrialStart(package: package);
+  }
+
+  /// Log restore purchases
+  Future<void> logRestorePurchases({required CustomerInfo customerInfo}) async {
+    await _conversionTracking.trackRestore(customerInfo: customerInfo);
+  }
+
+  /// Log a successful purchase event (legacy method)
   Future<void> logSuccesfullPurchase({
     required String currency,
     required double value,

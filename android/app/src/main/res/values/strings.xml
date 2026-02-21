@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App Name -->
+    <string name="app_name">CurrencyX</string>
+    <string name="app_name_full">CurrencyX: Crypto &amp; Fiat</string>
+    
+    <!-- Search -->
+    <string name="search_hint">Search currencies</string>
+    
+    <!-- Content Description -->
+    <string name="cd_app_icon">CurrencyX App Icon</string>
+    
+    <!-- For Future Use -->
+    <string name="facebook_app_id" translatable="false">YOUR_FACEBOOK_APP_ID</string>
+    <string name="facebook_client_token" translatable="false">YOUR_FACEBOOK_CLIENT_TOKEN</string>
+</resources>

@@ -8,6 +8,7 @@ import 'package:purchases_flutter/purchases_flutter.dart' hide LogLevel;
 
 import '../../config/env_config.dart';
 import '../analytics/logging_system.dart';
+import '../analytics/conversion_tracking_service.dart';
 import 'subscription_config.dart';
 import 'subscription_state.dart';
 
@@ -21,6 +22,9 @@ class SubscriptionService extends ChangeNotifier {
   }
 
   SubscriptionService._();
+
+  final ConversionTrackingService _conversionTracking =
+      ConversionTrackingService.instance;
 
   // State
   SubscriptionState _state = const SubscriptionState();
@@ -302,6 +306,17 @@ class SubscriptionService extends ChangeNotifier {
       final result = await Purchases.purchase(PurchaseParams.package(package));
       _updateCustomerInfo(result.customerInfo);
 
+      // Track conversion for GA4, Google Ads, SKAdNetwork (respects ATT)
+      final hasTrial = package.storeProduct.introductoryPrice != null;
+      if (hasTrial) {
+        await _conversionTracking.trackTrialStart(package: package);
+      } else {
+        await _conversionTracking.trackPurchase(
+          package: package,
+          customerInfo: result.customerInfo,
+        );
+      }
+
       // Sync purchases in background
       Purchases.syncPurchases().catchError((e) {
         AppLogger.e('Subscription', 'Failed to sync purchases', error: e);
@@ -365,6 +380,11 @@ class SubscriptionService extends ChangeNotifier {
 
       final hasActiveSubscription = info.activeSubscriptions.isNotEmpty ||
           info.entitlements.active.containsKey('premium');
+
+      // Track restore conversion
+      if (hasActiveSubscription) {
+        await _conversionTracking.trackRestore(customerInfo: info);
+      }
 
       AppLogger.s(
           'Subscription', 'Restore complete, active: $hasActiveSubscription');

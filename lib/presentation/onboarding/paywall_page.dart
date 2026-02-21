@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/subscription/subscription_service.dart';
 import '../../core/services/analytics/logging_system.dart';
+import '../../core/services/analytics/conversion_tracking_service.dart';
 import '../utils/snackbar_helper.dart';
 import '../widgets/cooldown_button.dart';
 
@@ -35,6 +36,8 @@ class _PaywallPageState extends State<PaywallPage>
   final ScrollController _scrollController = ScrollController();
 
   final SubscriptionService _subscriptionService = SubscriptionService.instance;
+  final ConversionTrackingService _conversionTracking =
+      ConversionTrackingService.instance;
 
   // URL placeholders - will be updated by user
   static const String _termsUrl =
@@ -77,6 +80,7 @@ class _PaywallPageState extends State<PaywallPage>
 
     _animController.forward();
     _loadPackages();
+    _conversionTracking.trackPaywallView(source: 'onboarding');
   }
 
   Future<void> _loadPackages() async {
@@ -122,6 +126,10 @@ class _PaywallPageState extends State<PaywallPage>
       package: _selectedPackage!,
       onSuccess: (result, package) {
         AppLogger.s('PaywallPage', 'Purchase successful');
+        _conversionTracking.trackPaywallResult(
+          result: 'purchased',
+          productId: package.identifier,
+        );
         if (mounted) {
           setState(() => _isLoading = false);
           SnackBarHelper.show(
@@ -134,6 +142,10 @@ class _PaywallPageState extends State<PaywallPage>
         }
       },
       onError: (message) {
+        _conversionTracking.trackPaywallResult(
+          result: 'error',
+          errorMessage: message,
+        );
         if (mounted) {
           setState(() => _isLoading = false);
           SnackBarHelper.show(
@@ -157,6 +169,7 @@ class _PaywallPageState extends State<PaywallPage>
       setState(() => _isLoading = false);
 
       if (success) {
+        _conversionTracking.trackPaywallResult(result: 'restored');
         SnackBarHelper.show(
           context: context,
           message: '✓ Purchases restored successfully',
@@ -212,6 +225,7 @@ class _PaywallPageState extends State<PaywallPage>
               cooldownSeconds: 3,
               onTouch: () {
                 HapticFeedback.lightImpact();
+                _conversionTracking.trackPaywallResult(result: 'dismissed');
                 widget.onClose();
               },
               finishType: CooldownButtonFinishType.icon,

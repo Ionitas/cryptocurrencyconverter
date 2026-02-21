@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/subscription/subscription_service.dart';
 import '../../../core/services/analytics/logging_system.dart';
+import '../../../core/services/analytics/conversion_tracking_service.dart';
 import '../utils/snackbar_helper.dart';
 import 'cooldown_button.dart';
 
@@ -56,6 +57,8 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
     with SingleTickerProviderStateMixin {
   final AppTheme _appTheme = getIt<AppTheme>();
   final SubscriptionService _subscriptionService = SubscriptionService.instance;
+  final ConversionTrackingService _conversionTracking =
+      ConversionTrackingService.instance;
 
   // URL placeholders - will be updated by user
   static const String _termsUrl =
@@ -99,6 +102,9 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
 
     _animController.forward();
     _loadPackages();
+    _conversionTracking.trackPaywallView(
+      source: widget.isOnboarding ? 'onboarding' : 'modal',
+    );
   }
 
   Future<void> _loadPackages() async {
@@ -143,6 +149,10 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
       package: _selectedPackage!,
       onSuccess: (result, package) {
         AppLogger.s('SubscriptionPaywall', 'Purchase successful');
+        _conversionTracking.trackPaywallResult(
+          result: 'purchased',
+          productId: package.identifier,
+        );
         if (mounted) {
           setState(() => _isLoading = false);
           SnackBarHelper.show(
@@ -155,6 +165,10 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
         }
       },
       onError: (message) {
+        _conversionTracking.trackPaywallResult(
+          result: 'error',
+          errorMessage: message,
+        );
         if (mounted) {
           setState(() => _isLoading = false);
           SnackBarHelper.show(
@@ -178,6 +192,7 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
       setState(() => _isLoading = false);
 
       if (success) {
+        _conversionTracking.trackPaywallResult(result: 'restored');
         SnackBarHelper.show(
           context: context,
           message: '✓ Purchases restored successfully',
@@ -345,6 +360,7 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
         cooldownSeconds: 3,
         onTouch: () {
           HapticFeedback.lightImpact();
+          _conversionTracking.trackPaywallResult(result: 'dismissed');
           widget.onClose?.call();
         },
         finishType: CooldownButtonFinishType.icon,
