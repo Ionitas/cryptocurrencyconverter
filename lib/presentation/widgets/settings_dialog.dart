@@ -320,7 +320,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? appTheme.primary.withOpacity(0.2)
+              ? appTheme.primary.withValues(alpha: 0.2)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -393,7 +393,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: appTheme.surfaceLight.withOpacity(0.3),
+        color: appTheme.surfaceLight.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: appTheme.surfaceLight,
@@ -435,7 +435,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
           Switch.adaptive(
             value: appTheme.showNotifications,
             onChanged: (value) => appTheme.setShowNotifications(value),
-            activeColor: appTheme.primary,
+            activeThumbColor: appTheme.primary,
           ),
         ],
       ),

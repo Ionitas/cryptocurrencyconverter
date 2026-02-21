@@ -36,11 +36,11 @@ class AddCurrencyModal extends StatefulWidget {
           filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
             decoration: BoxDecoration(
-              color: appTheme.surface.withOpacity(0.85),
+              color: appTheme.surface.withValues(alpha: 0.85),
               borderRadius:
                   const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
@@ -119,7 +119,7 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
               height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 8),
               decoration: BoxDecoration(
-                color: _appTheme.primaryLight.withOpacity(0.5),
+                color: _appTheme.primaryLight.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -203,10 +203,10 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
             bottom: bottomPadding > 0 ? bottomPadding : 16,
           ),
           decoration: BoxDecoration(
-            color: _appTheme.surface.withOpacity(0.9),
+            color: _appTheme.surface.withValues(alpha: 0.9),
             border: Border(
               top: BorderSide(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
@@ -214,15 +214,15 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: _appTheme.background.withOpacity(0.6),
+              color: _appTheme.background.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: _appTheme.primary.withOpacity(0.1),
+                  color: _appTheme.primary.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, -4),
                 ),

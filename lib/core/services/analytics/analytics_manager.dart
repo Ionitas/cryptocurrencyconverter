@@ -5,7 +5,7 @@ import 'tracking_service.dart';
 import 'logging_system.dart';
 
 /// Analytics manager for tracking events
-/// Use getIt<AnalyticsManager>() to access the singleton instance
+/// Use `getIt<AnalyticsManager>()` to access the singleton instance
 class AnalyticsManager {
   final FirebaseAnalyticsService _firebaseAnalytics =
       FirebaseAnalyticsService.instance;
@@ -71,7 +71,8 @@ class AnalyticsManager {
     );
 
     if (kDebugMode) {
-      print('Purchase logged: $currency, $value, $transactionId, $parameters');
+      debugPrint(
+          'Purchase logged: $currency, $value, $transactionId, $parameters');
     }
   }
 
@@ -113,7 +114,7 @@ class AnalyticsManager {
     );
 
     if (kDebugMode) {
-      print('Subscription paywall started: $parameters');
+      debugPrint('Subscription paywall started: $parameters');
     }
   }
 
@@ -127,7 +128,7 @@ class AnalyticsManager {
     await _firebaseAnalytics.logEvent(name: eventName, parameters: parameters);
 
     if (kDebugMode) {
-      print('Event: $eventName, Parameters: $parameters');
+      debugPrint('Event: $eventName, Parameters: $parameters');
     }
   }
 
@@ -136,7 +137,7 @@ class AnalyticsManager {
     await _firebaseAnalytics.logScreenView(screenName: screenName);
 
     if (kDebugMode) {
-      print('Screen view: $screenName');
+      debugPrint('Screen view: $screenName');
     }
   }
 
@@ -277,6 +278,51 @@ class AnalyticsManager {
     await _firebaseAnalytics.logUserEngagement(
       action: action,
       context: context,
+    );
+  }
+
+  /// Log currency swapped (main ↔ list)
+  Future<void> logCurrencySwapped({
+    required String from,
+    required String to,
+    required double amount,
+  }) async {
+    await _firebaseAnalytics.logCurrencySwapped(
+      from: from,
+      to: to,
+      amount: amount,
+    );
+  }
+
+  /// Log currency reordered via drag
+  Future<void> logCurrencyReordered() async {
+    await _firebaseAnalytics.logCurrencyReordered();
+  }
+
+  /// Log calculator expression evaluated
+  Future<void> logCalculatorUsed({
+    required String expression,
+    required double result,
+  }) async {
+    await _firebaseAnalytics.logCalculatorUsed(
+      expression: expression,
+      result: result,
+    );
+  }
+
+  /// Log theme changed
+  Future<void> logThemeChanged({required String theme}) async {
+    await _firebaseAnalytics.logThemeChanged(theme: theme);
+  }
+
+  /// Log background sync completed
+  Future<void> logBackgroundSyncComplete({
+    required int currencyCount,
+    required int durationMs,
+  }) async {
+    await _firebaseAnalytics.logBackgroundSyncComplete(
+      currencyCount: currencyCount,
+      durationMs: durationMs,
     );
   }
 

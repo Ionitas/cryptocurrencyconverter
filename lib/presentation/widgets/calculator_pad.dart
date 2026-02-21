@@ -91,20 +91,20 @@ class _CalculatorPadState extends State<CalculatorPad> {
           ),
           decoration: BoxDecoration(
             color: widget.appTheme.surface
-                .withOpacity(DesignTokens.opacityVeryHigh),
+                .withValues(alpha: DesignTokens.opacityVeryHigh),
             borderRadius: BorderRadius.vertical(
                 top: Radius.circular(DesignTokens.radiusXXL)),
             border: Border(
               top: BorderSide(
                 color:
-                    Colors.white.withOpacity(DesignTokens.opacityMediumLight),
+                    Colors.white.withValues(alpha: DesignTokens.opacityMediumLight),
                 width: DesignTokens.borderThin,
               ),
             ),
             boxShadow: [
               BoxShadow(
                 color:
-                    Colors.black.withOpacity(DesignTokens.shadowOpacityHeavy),
+                    Colors.black.withValues(alpha: DesignTokens.shadowOpacityHeavy),
                 blurRadius: DesignTokens.blurVeryHeavy,
                 offset: const Offset(0, -8),
               ),
@@ -120,7 +120,7 @@ class _CalculatorPadState extends State<CalculatorPad> {
                 margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
                 decoration: BoxDecoration(
                   color: widget.appTheme.primaryLight
-                      .withOpacity(DesignTokens.opacityVeryHeavy),
+                      .withValues(alpha: DesignTokens.opacityVeryHeavy),
                   borderRadius: BorderRadius.circular(DesignTokens.spaceXS / 2),
                 ),
               ),

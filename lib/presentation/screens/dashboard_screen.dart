@@ -50,6 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   /// Called when app returns to foreground
   void _onAppForeground() {
+    getIt<AnalyticsManager>().logUserEngagement(action: 'app_foreground');
     // Refresh data if it might be stale
     if (AppLifecycleManager.instance.shouldRefreshData) {
       AppLogger.i('Dashboard', 'App returned from background, refreshing data');

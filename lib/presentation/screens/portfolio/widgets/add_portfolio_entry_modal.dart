@@ -38,10 +38,10 @@ class AddPortfolioEntryModal extends StatefulWidget {
           filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
             decoration: BoxDecoration(
-              color: appTheme.surface.withOpacity(0.92),
+              color: appTheme.surface.withValues(alpha: 0.92),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               border: Border.all(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
@@ -202,7 +202,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
       height: 4,
       margin: const EdgeInsets.only(top: 12, bottom: 8),
       decoration: BoxDecoration(
-        color: widget.appTheme.primaryLight.withOpacity(0.5),
+        color: widget.appTheme.primaryLight.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(2),
       ),
     );
@@ -244,7 +244,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: widget.appTheme.primary.withOpacity(0.15),
+                color: widget.appTheme.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -438,7 +438,7 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: widget.appTheme.primary.withOpacity(0.1),
+                color: widget.appTheme.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(Icons.chevron_right_rounded, color: widget.appTheme.primary, size: 20),
@@ -547,14 +547,14 @@ class _AddPortfolioEntryModalState extends State<AddPortfolioEntryModal> {
         padding: const EdgeInsets.symmetric(vertical: 18),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [widget.appTheme.primary, widget.appTheme.primary.withOpacity(0.85)],
+            colors: [widget.appTheme.primary, widget.appTheme.primary.withValues(alpha: 0.85)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: widget.appTheme.primary.withOpacity(0.3),
+              color: widget.appTheme.primary.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

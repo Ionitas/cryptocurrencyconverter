@@ -95,7 +95,7 @@ class _NoInternetScreenState extends State<NoInternetScreen> with SingleTickerPr
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        color: appTheme.surfaceLight.withOpacity(0.3),
+                        color: appTheme.surfaceLight.withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -146,7 +146,7 @@ class _NoInternetScreenState extends State<NoInternetScreen> with SingleTickerPr
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: appTheme.primary.withOpacity(0.4),
+                        color: appTheme.primary.withValues(alpha: 0.4),
                         blurRadius: 20,
                         offset: const Offset(0, 6),
                       ),

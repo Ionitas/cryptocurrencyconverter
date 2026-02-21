@@ -4,6 +4,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../firebase_options.dart';
 import 'logging_system.dart';
 
 /// Firebase Analytics Service
@@ -32,7 +33,7 @@ class FirebaseAnalyticsService {
     if (_isInitialized) return;
 
     // Only initialize on mobile platforms
-    if (!Platform.isIOS && !Platform.isAndroid) {
+    if (kIsWeb || (!Platform.isIOS && !Platform.isAndroid)) {
       AppLogger.i('FirebaseAnalytics', 'Skipping - not a mobile platform');
       return;
     }
@@ -40,7 +41,9 @@ class FirebaseAnalyticsService {
     try {
       // Firebase should already be initialized in main.dart
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp();
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
       }
 
       _analytics = FirebaseAnalytics.instance;
@@ -63,7 +66,7 @@ class FirebaseAnalyticsService {
   }) async {
     if (!_isInitialized || _analytics == null) {
       if (kDebugMode) {
-        print('Analytics Event: $name - $parameters');
+        debugPrint('Analytics Event: $name - $parameters');
       }
       return;
     }
@@ -86,7 +89,7 @@ class FirebaseAnalyticsService {
   }) async {
     if (!_isInitialized || _analytics == null) {
       if (kDebugMode) {
-        print('Screen View: $screenName');
+        debugPrint('Screen View: $screenName');
       }
       return;
     }
@@ -252,7 +255,7 @@ class FirebaseAnalyticsService {
 
   /// Log data sync performance
   Future<void> logDataSync({
-    required String source, // 'cache', 'supabase', 'api'
+    required String source, // 'cache', 'api', 'network', 'background'
     required int durationMs,
     required int currencyCount,
     required bool success,
@@ -359,6 +362,63 @@ class FirebaseAnalyticsService {
         if (productId != null) 'product_id': productId,
         if (errorMessage != null)
           'error': errorMessage.substring(0, errorMessage.length.clamp(0, 50)),
+      },
+    );
+  }
+
+  /// Log currency swapped (main ↔ list)
+  Future<void> logCurrencySwapped({
+    required String from,
+    required String to,
+    required double amount,
+  }) async {
+    await logEvent(
+      name: 'currency_swapped',
+      parameters: {
+        'from_currency': from,
+        'to_currency': to,
+        'amount': amount,
+      },
+    );
+  }
+
+  /// Log currency reordered via drag
+  Future<void> logCurrencyReordered() async {
+    await logEvent(name: 'currency_reordered');
+  }
+
+  /// Log calculator usage (expression evaluated)
+  Future<void> logCalculatorUsed({
+    required String expression,
+    required double result,
+  }) async {
+    await logEvent(
+      name: 'calculator_used',
+      parameters: {
+        'expression_length': expression.length,
+        'result': result,
+      },
+    );
+  }
+
+  /// Log theme changed
+  Future<void> logThemeChanged({required String theme}) async {
+    await logEvent(
+      name: 'theme_changed',
+      parameters: {'theme': theme},
+    );
+  }
+
+  /// Log background sync completed
+  Future<void> logBackgroundSyncComplete({
+    required int currencyCount,
+    required int durationMs,
+  }) async {
+    await logEvent(
+      name: 'background_sync_complete',
+      parameters: {
+        'currency_count': currencyCount,
+        'duration_ms': durationMs,
       },
     );
   }

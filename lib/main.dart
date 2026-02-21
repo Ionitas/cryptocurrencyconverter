@@ -1,12 +1,11 @@
 import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'core/config/supabase_config.dart';
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/onboarding_service.dart';
@@ -17,6 +16,7 @@ import 'core/services/analytics/firebase_analytics_service.dart';
 import 'core/services/analytics/analytics_manager.dart';
 import 'core/services/startup/startup_manager.dart';
 import 'core/services/startup/app_lifecycle_manager.dart';
+import 'firebase_options.dart';
 import 'presentation/screens/dashboard_screen.dart';
 import 'presentation/screens/no_internet_screen.dart';
 import 'presentation/screens/splash_screen.dart';
@@ -27,8 +27,9 @@ void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
 
-  final isMobile = Platform.isIOS || Platform.isAndroid;
-  final isDesktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+  final isMobile = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
+  final isDesktop =
+      !kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
 
   // PHASE 1: Critical platform setup (must be sequential)
   await _setupPlatform(isMobile, isDesktop);
@@ -94,11 +95,6 @@ Future<void> _initializeCoreServices(bool isMobile) async {
     futures.add(_initFirebase());
   }
 
-  // Supabase (if configured)
-  if (SupabaseConfig.isConfigured) {
-    futures.add(_initSupabase());
-  }
-
   // Wait for all parallel initializations
   await Future.wait(futures);
 }
@@ -106,26 +102,13 @@ Future<void> _initializeCoreServices(bool isMobile) async {
 Future<void> _initFirebase() async {
   try {
     final timer = Stopwatch()..start();
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform);
     await FirebaseAnalyticsService.instance.init();
     timer.stop();
     debugPrint('✓ Firebase initialized in ${timer.elapsedMilliseconds}ms');
   } catch (e) {
     debugPrint('✗ Firebase initialization failed: $e');
-  }
-}
-
-Future<void> _initSupabase() async {
-  try {
-    final timer = Stopwatch()..start();
-    await Supabase.initialize(
-      url: SupabaseConfig.supabaseUrl,
-      anonKey: SupabaseConfig.supabaseAnonKey,
-    );
-    timer.stop();
-    debugPrint('✓ Supabase initialized in ${timer.elapsedMilliseconds}ms');
-  } catch (e) {
-    debugPrint('✗ Supabase initialization failed: $e');
   }
 }
 
@@ -357,9 +340,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           }),
           trackColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.selected)) {
-              return _appTheme.primary.withOpacity(0.5);
+              return _appTheme.primary.withValues(alpha: 0.5);
             }
-            return _appTheme.surfaceLight.withOpacity(0.5);
+            return _appTheme.surfaceLight.withValues(alpha: 0.5);
           }),
         ),
       ),

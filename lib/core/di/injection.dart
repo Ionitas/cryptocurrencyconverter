@@ -1,9 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../config/supabase_config.dart';
 import '../../data/datasources/crypto_api_datasource.dart';
-import '../../data/datasources/supabase_datasource.dart';
 import '../../data/datasources/fiat_api_datasource.dart';
 import '../../data/datasources/local_cache_datasource.dart';
 import '../../data/repositories/currency_repository_impl.dart';
@@ -33,12 +31,7 @@ Future<void> setupDependencies() async {
   getIt.registerLazySingleton<ConfigService>(() => ConfigService());
   getIt.registerLazySingleton<AnalyticsManager>(() => AnalyticsManager());
 
-  // Supabase Data Source (primary)
-  getIt.registerLazySingleton<SupabaseDataSource>(
-    () => SupabaseDataSource.instance(),
-  );
-
-  // Legacy Data Sources (fallback when Supabase is unavailable)
+  // Data Sources (direct API calls - no backend needed)
   getIt.registerLazySingleton<CryptoApiDataSource>(
     () => CryptoApiDataSource(),
   );
@@ -51,18 +44,31 @@ Future<void> setupDependencies() async {
 
   // Repositories
   getIt.registerLazySingleton<CurrencyRepository>(
-    () => CurrencyRepositoryImpl(
-      supabaseDataSource:
-          SupabaseConfig.isConfigured ? getIt<SupabaseDataSource>() : null,
-      cryptoDataSource: getIt<CryptoApiDataSource>(),
-      fiatDataSource: getIt<FiatApiDataSource>(),
-      cacheDataSource: getIt<LocalCacheDataSource>(),
-    ),
+    () {
+      final repo = CurrencyRepositoryImpl(
+        cryptoDataSource: getIt<CryptoApiDataSource>(),
+        fiatDataSource: getIt<FiatApiDataSource>(),
+        cacheDataSource: getIt<LocalCacheDataSource>(),
+      );
+      // Wire background-refresh callback so the sync service is notified
+      // when the repository finishes a background update.
+      // We do this lazily: the callback is set when CurrencySyncService is
+      // first resolved (which happens after the repo is resolved).
+      return repo;
+    },
   );
 
   // Currency Sync Service (singleton for global state management)
   getIt.registerLazySingleton<CurrencySyncService>(
-    () => CurrencySyncService(getIt<CurrencyRepository>()),
+    () {
+      final syncService = CurrencySyncService(getIt<CurrencyRepository>());
+      // Wire repo → sync service notification for background refreshes
+      final repo = getIt<CurrencyRepository>() as CurrencyRepositoryImpl;
+      repo.onCurrenciesUpdated = () {
+        syncService.notifyBackgroundUpdate(repo.allCurrencies);
+      };
+      return syncService;
+    },
   );
 
   // Subscription Services

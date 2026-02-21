@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../di/injection.dart';
+import '../services/analytics/analytics_manager.dart';
 import '../services/theme_service.dart';
 
 /// Available theme options
@@ -31,6 +33,12 @@ class AppTheme extends ChangeNotifier {
     _currentTheme = theme;
     await _themeService.saveTheme(_enumToThemeName(theme));
     notifyListeners();
+    // Log theme change analytics
+    try {
+      getIt<AnalyticsManager>().logThemeChanged(theme: _enumToThemeName(theme));
+    } catch (_) {
+      // Analytics not yet available
+    }
   }
 
   /// Toggle show notifications and save to storage

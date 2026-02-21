@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_constants.dart';
 import '../../domain/models/currency.dart';
@@ -11,7 +12,8 @@ class LocalCacheDataSource {
   static const String _lastFetchKey = 'last_fetch_time';
   static const String _isPremiumKey = 'is_premium';
   static const String _historicalRatesKey = 'historical_rates';
-  static const String _historicalRatesTimestampKey = 'historical_rates_timestamp';
+  static const String _historicalRatesTimestampKey =
+      'historical_rates_timestamp';
 
   LocalCacheDataSource(this._prefs);
 
@@ -22,7 +24,8 @@ class LocalCacheDataSource {
 
     final lastFetchTime = DateTime.parse(lastFetch);
     final now = DateTime.now();
-    return now.difference(lastFetchTime).inHours < AppConstants.cacheValidityHours;
+    return now.difference(lastFetchTime).inHours <
+        AppConstants.cacheValidityHours;
   }
 
   /// Get cached currencies
@@ -34,7 +37,7 @@ class LocalCacheDataSource {
       final List<dynamic> jsonList = json.decode(jsonString);
       return jsonList.map((j) => Currency.fromJson(j)).toList();
     } catch (e) {
-      print('Error reading cache: $e');
+      debugPrint('Error reading cache: $e');
       return [];
     }
   }
@@ -127,7 +130,8 @@ class LocalCacheDataSource {
       // If it's newer than 18 hours, it's too recent to calculate 24h change
       if (age.inHours >= 18 && age.inHours <= 30) {
         final Map<String, dynamic> decoded = json.decode(jsonString);
-        return decoded.map((key, value) => MapEntry(key, (value as num).toDouble()));
+        return decoded
+            .map((key, value) => MapEntry(key, (value as num).toDouble()));
       }
 
       return null;
@@ -143,7 +147,8 @@ class LocalCacheDataSource {
 
     try {
       final Map<String, dynamic> decoded = json.decode(jsonString);
-      return decoded.map((key, value) => MapEntry(key, (value as num).toDouble()));
+      return decoded
+          .map((key, value) => MapEntry(key, (value as num).toDouble()));
     } catch (e) {
       return null;
     }

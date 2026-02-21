@@ -23,7 +23,7 @@ class AddCurrencyCard extends StatelessWidget {
           color: appTheme.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: appTheme.primary.withOpacity(0.5),
+            color: appTheme.primary.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
@@ -34,7 +34,7 @@ class AddCurrencyCard extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: appTheme.primary.withOpacity(0.2),
+                color: appTheme.primary.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(

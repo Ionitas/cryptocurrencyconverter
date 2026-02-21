@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../core/constants/app_constants.dart';
 import '../../domain/models/currency.dart';
 
 /// Data source for fetching fiat currency data from external APIs
+/// Uses compute() isolates for heavy JSON parsing to keep the UI responsive
 class FiatApiDataSource {
   /// Complete mapping of currency codes to names
   static const Map<String, String> _fiatNames = {
@@ -123,27 +125,38 @@ class FiatApiDataSource {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final Map<String, dynamic> rates = data['rates'] ?? {};
-
-        final List<Currency> currencies = [];
-        for (final entry in _fiatNames.entries) {
-          if (rates.containsKey(entry.key)) {
-            final rate = (rates[entry.key] ?? 1.0).toDouble();
-            currencies.add(Currency.fromExchangeRate(
-              entry.key,
-              entry.value,
-              1.0 / rate,
-            ));
-          }
-        }
-        return currencies;
+        // Offload JSON decoding + parsing to isolate for performance
+        return compute(_parseFiatResponse, response.body);
       }
     } catch (e) {
-      print('ExchangeRate API error: $e');
+      debugPrint('ExchangeRate API error: $e');
     }
 
     return _getFallbackFiat();
+  }
+
+  /// Static top-level function for compute() isolate - fiat parsing
+  static List<Currency> _parseFiatResponse(String responseBody) {
+    try {
+      final data = json.decode(responseBody);
+      final Map<String, dynamic> rates = data['rates'] ?? {};
+
+      final List<Currency> currencies = [];
+      for (final entry in _fiatNames.entries) {
+        if (rates.containsKey(entry.key)) {
+          final rate = (rates[entry.key] ?? 1.0).toDouble();
+          currencies.add(Currency.fromExchangeRate(
+            entry.key,
+            entry.value,
+            1.0 / rate,
+          ));
+        }
+      }
+      return currencies;
+    } catch (e) {
+      // Parsing failed in isolate
+    }
+    return [];
   }
 
   List<Currency> _getFallbackFiat() {

@@ -345,7 +345,7 @@ abstract class DesignTokens {
   /// Standard card decoration box shadow
   static List<BoxShadow> cardShadow(Color color) => [
         BoxShadow(
-          color: color.withOpacity(shadowOpacityLight),
+          color: color.withValues(alpha: shadowOpacityLight),
           blurRadius: shadowBlurM,
           offset: const Offset(0, shadowOffsetS),
         ),
@@ -354,7 +354,7 @@ abstract class DesignTokens {
   /// Elevated shadow for buttons/FABs
   static List<BoxShadow> elevatedShadow(Color color) => [
         BoxShadow(
-          color: color.withOpacity(shadowOpacityGlow),
+          color: color.withValues(alpha: shadowOpacityGlow),
           blurRadius: shadowBlurL,
           offset: const Offset(0, shadowOffsetL),
         ),
@@ -363,7 +363,7 @@ abstract class DesignTokens {
   /// Bottom bar shadow
   static List<BoxShadow> bottomBarShadow() => [
         BoxShadow(
-          color: Colors.black.withOpacity(shadowOpacityMedium),
+          color: Colors.black.withValues(alpha: shadowOpacityMedium),
           blurRadius: shadowBlurM,
           offset: const Offset(0, -shadowOffsetM),
         ),

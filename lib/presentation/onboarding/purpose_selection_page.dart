@@ -144,6 +144,7 @@ class _PurposeSelectionPageState extends State<PurposeSelectionPage>
         // Purpose options
         Expanded(
           child: ListView.builder(
+            primary: false,
             padding: const EdgeInsets.symmetric(horizontal: 24),
             itemCount: _options.length,
             itemBuilder: (context, index) {
@@ -189,18 +190,19 @@ class _PurposeSelectionPageState extends State<PurposeSelectionPage>
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? option.color.withOpacity(0.15)
-                    : appTheme.surface.withOpacity(0.6),
+                    ? option.color.withValues(alpha: 0.15)
+                    : appTheme.surface.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color:
-                      isSelected ? option.color : Colors.white.withOpacity(0.1),
+                  color: isSelected
+                      ? option.color
+                      : Colors.white.withValues(alpha: 0.1),
                   width: 2,
                 ),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: option.color.withOpacity(0.3),
+                          color: option.color.withValues(alpha: 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 6),
                         ),
@@ -214,7 +216,7 @@ class _PurposeSelectionPageState extends State<PurposeSelectionPage>
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      color: option.color.withOpacity(0.2),
+                      color: option.color.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Icon(
@@ -259,7 +261,7 @@ class _PurposeSelectionPageState extends State<PurposeSelectionPage>
                       border: Border.all(
                         color: isSelected
                             ? option.color
-                            : appTheme.textTertiary.withOpacity(0.5),
+                            : appTheme.textTertiary.withValues(alpha: 0.5),
                         width: 2,
                       ),
                     ),
@@ -301,7 +303,7 @@ class _PurposeSelectionPageState extends State<PurposeSelectionPage>
             boxShadow: isEnabled
                 ? [
                     BoxShadow(
-                      color: appTheme.primary.withOpacity(0.4),
+                      color: appTheme.primary.withValues(alpha: 0.4),
                       blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),

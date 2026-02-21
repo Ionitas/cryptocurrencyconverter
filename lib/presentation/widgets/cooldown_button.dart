@@ -168,7 +168,7 @@ class _CooldownButtonWidgetState extends State<CooldownButtonWidget>
                 TextStyle(
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
-                  color: color.withOpacity(0.5),
+                  color: color.withValues(alpha: 0.5),
                 ),
           );
         } else {

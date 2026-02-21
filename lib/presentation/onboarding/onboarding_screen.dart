@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
@@ -255,6 +254,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   setState(() {
                     _currentPage = page;
                   });
+                  // Log onboarding step analytics for pages 2-4
+                  final stepNames = {
+                    0: 'welcome',
+                    1: 'features',
+                    2: 'country_selection',
+                    3: 'purpose_selection',
+                    4: 'paywall',
+                  };
+                  getIt<AnalyticsManager>().logOnboardingStep(
+                    stepNumber: page,
+                    stepName: stepNames[page] ?? 'unknown',
+                  );
                 },
                 children: [
                   // Page 0: Welcome
@@ -321,7 +332,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _appTheme.surfaceLight.withOpacity(0.5),
+                color: _appTheme.surfaceLight.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -359,7 +370,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       child: Container(
         height: 8,
         decoration: BoxDecoration(
-          color: _appTheme.surfaceLight.withOpacity(0.3),
+          color: _appTheme.surfaceLight.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
@@ -372,12 +383,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 decoration: BoxDecoration(
                   color: isActive
                       ? _appTheme.primary
-                      : _appTheme.surfaceLight.withOpacity(0.3),
+                      : _appTheme.surfaceLight.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(4),
                   boxShadow: isActive
                       ? [
                           BoxShadow(
-                            color: _appTheme.primary.withOpacity(0.5),
+                            color: _appTheme.primary.withValues(alpha: 0.5),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),

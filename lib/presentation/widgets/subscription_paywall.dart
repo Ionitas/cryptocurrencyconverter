@@ -231,7 +231,7 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 30,
             offset: const Offset(0, 15),
           ),
@@ -289,6 +289,7 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
             // Features list
             Flexible(
               child: SingleChildScrollView(
+                primary: false,
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
@@ -364,7 +365,7 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: _appTheme.primary.withOpacity(0.4),
+            color: _appTheme.primary.withValues(alpha: 0.4),
             blurRadius: 25,
             offset: const Offset(0, 8),
           ),
@@ -391,7 +392,7 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _appTheme.primary.withOpacity(0.15),
+              color: _appTheme.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: _appTheme.primary, size: 22),
@@ -452,8 +453,8 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected
-              ? _appTheme.primary.withOpacity(0.1)
-              : _appTheme.surfaceLight.withOpacity(0.5),
+              ? _appTheme.primary.withValues(alpha: 0.1)
+              : _appTheme.surfaceLight.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? _appTheme.primary : Colors.transparent,
@@ -583,7 +584,7 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: _appTheme.primary.withOpacity(0.5),
+                    color: _appTheme.primary.withValues(alpha: 0.5),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),

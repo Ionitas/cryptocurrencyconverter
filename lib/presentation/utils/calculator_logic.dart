@@ -60,7 +60,7 @@ mixin CalculatorLogic {
 
     if (_currentInput.isNotEmpty &&
         _currentInput != '0' &&
-        _currentInput.length > 0) {
+        _currentInput.isNotEmpty) {
       // Remove last character from current input
       if (_currentInput.length > 1) {
         _currentInput = _currentInput.substring(0, _currentInput.length - 1);
@@ -193,7 +193,9 @@ mixin CalculatorLogic {
 
     // Fix edge cases
     if (_isOperator(expr.first)) expr.insert(0, '0');
-    while (expr.isNotEmpty && _isOperator(expr.last)) expr.removeLast();
+    while (expr.isNotEmpty && _isOperator(expr.last)) {
+      expr.removeLast();
+    }
 
     if (expr.isEmpty) return 0;
     if (expr.length == 1) return double.tryParse(expr.first) ?? 0;

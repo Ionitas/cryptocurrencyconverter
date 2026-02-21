@@ -8,7 +8,7 @@ abstract class IConfigService {
 }
 
 /// Implementation of config service
-/// Use getIt<ConfigService>() to access the singleton instance
+/// Use `getIt<ConfigService>()` to access the singleton instance
 class ConfigService implements IConfigService {
   @override
   String getPrivacyPolicyURL() {

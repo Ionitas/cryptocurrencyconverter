@@ -1,14 +1,18 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../core/constants/app_constants.dart';
 import '../../domain/models/currency.dart';
 
 /// Data source for fetching cryptocurrency data from external APIs
+/// Uses compute() isolates for heavy JSON parsing to keep the UI responsive
 class CryptoApiDataSource {
   /// Fetches cryptocurrencies from CoinCap or CoinGecko APIs
   /// Falls back to hardcoded data if both APIs fail
   Future<List<Currency>> fetchCryptocurrencies({bool isPremium = false}) async {
-    final limit = isPremium ? AppConstants.premiumCryptoLimit : AppConstants.freeCryptoLimit;
+    final limit = isPremium
+        ? AppConstants.premiumCryptoLimit
+        : AppConstants.freeCryptoLimit;
 
     // Try CoinCap first
     final coinCapResult = await _fetchFromCoinCap(limit);
@@ -29,14 +33,25 @@ class CryptoApiDataSource {
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List<dynamic> assets = data['data'] ?? [];
-        if (assets.isNotEmpty) {
-          return assets.map((asset) => Currency.fromCoinCap(asset)).toList();
-        }
+        // Offload JSON decoding + parsing to isolate for large responses
+        return compute(_parseCoinCapResponse, response.body);
       }
     } catch (e) {
-      print('CoinCap API error: $e');
+      debugPrint('CoinCap API error: $e');
+    }
+    return [];
+  }
+
+  /// Static top-level function for compute() isolate - CoinCap parsing
+  static List<Currency> _parseCoinCapResponse(String responseBody) {
+    try {
+      final data = json.decode(responseBody);
+      final List<dynamic> assets = data['data'] ?? [];
+      if (assets.isNotEmpty) {
+        return assets.map((asset) => Currency.fromCoinCap(asset)).toList();
+      }
+    } catch (e) {
+      // Parsing failed in isolate
     }
     return [];
   }
@@ -47,25 +62,38 @@ class CryptoApiDataSource {
           '?vs_currency=usd&order=market_cap_desc&per_page=$limit'
           '&page=1&sparkline=false&price_change_percentage=24h';
 
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        final List<dynamic> coins = json.decode(response.body);
-        return coins
-            .map((coin) => Currency(
-                  id: coin['id'] ?? '',
-                  code: (coin['symbol'] ?? '').toString().toUpperCase(),
-                  symbol: (coin['symbol'] ?? '').toString().toUpperCase(),
-                  name: coin['name'] ?? '',
-                  priceUsd: (coin['current_price'] ?? 0).toDouble(),
-                  changePercent24h: (coin['price_change_percentage_24h'] ?? 0).toDouble(),
-                  isCrypto: true,
-                  lastUpdated: DateTime.now(),
-                ))
-            .toList();
+        // Offload JSON decoding + parsing to isolate
+        return compute(_parseCoinGeckoResponse, response.body);
       }
     } catch (e) {
-      print('CoinGecko API error: $e');
+      debugPrint('CoinGecko API error: $e');
+    }
+    return [];
+  }
+
+  /// Static top-level function for compute() isolate - CoinGecko parsing
+  static List<Currency> _parseCoinGeckoResponse(String responseBody) {
+    try {
+      final List<dynamic> coins = json.decode(responseBody);
+      return coins
+          .map((coin) => Currency(
+                id: coin['id'] ?? '',
+                code: (coin['symbol'] ?? '').toString().toUpperCase(),
+                symbol: (coin['symbol'] ?? '').toString().toUpperCase(),
+                name: coin['name'] ?? '',
+                priceUsd: (coin['current_price'] ?? 0).toDouble(),
+                changePercent24h:
+                    (coin['price_change_percentage_24h'] ?? 0).toDouble(),
+                isCrypto: true,
+                lastUpdated: DateTime.now(),
+              ))
+          .toList();
+    } catch (e) {
+      // Parsing failed in isolate
     }
     return [];
   }

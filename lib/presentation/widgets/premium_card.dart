@@ -30,7 +30,7 @@ class PremiumCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: appTheme.primary.withOpacity(0.3),
+                  color: appTheme.primary.withValues(alpha: 0.3),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),

@@ -4,6 +4,7 @@ import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
 import '../services/analytics/logging_system.dart';
 import '../services/analytics/analytics_manager.dart';
+import '../services/startup/app_lifecycle_manager.dart';
 import '../di/injection.dart';
 
 /// Enum representing the sync state of currency data
@@ -64,7 +65,27 @@ class CurrencySyncService extends ChangeNotifier {
   static const Duration _debounceDelay = Duration(milliseconds: 300);
   DateTime? _lastSyncTime;
 
-  CurrencySyncService(this._repository);
+  CurrencySyncService(this._repository) {
+    AppLifecycleManager.instance.addForegroundListener(_onAppForeground);
+    AppLifecycleManager.instance.addBackgroundListener(_onAppBackground);
+  }
+
+  /// Pause background sync when app goes to background
+  void _onAppBackground() {
+    if (_backgroundSyncTimer != null) {
+      AppLogger.i('SyncService', 'Pausing background sync (app backgrounded)');
+      _backgroundSyncTimer?.cancel();
+      _backgroundSyncTimer = null;
+    }
+  }
+
+  /// Resume background sync when app comes to foreground
+  void _onAppForeground() {
+    AppLogger.i('SyncService', 'Resuming background sync (app foregrounded)');
+    if (_initialLoadComplete && _backgroundSyncTimer == null) {
+      _startBackgroundSync();
+    }
+  }
 
   // Getters
   Stream<List<Currency>> get currencyStream => _currencyStreamController.stream;
@@ -350,6 +371,32 @@ class CurrencySyncService extends ChangeNotifier {
     });
   }
 
+  /// Called by the repository when a background refresh completes.
+  /// Updates the currency list and notifies all listeners.
+  void notifyBackgroundUpdate(List<Currency> updatedCurrencies) {
+    if (updatedCurrencies.isEmpty) return;
+    final startTime = _lastSyncTime ?? DateTime.now();
+    AppLogger.i('SyncService',
+        'Background update received: ${updatedCurrencies.length} currencies');
+    _currencies = updatedCurrencies;
+    _currencyStreamController.add(_currencies);
+    _lastSyncFromCache = false;
+    _lastSyncMessage = 'Updated in background';
+    _lastSyncTime = DateTime.now();
+    notifyListeners();
+
+    // Log background sync completion analytics
+    final durationMs = DateTime.now().difference(startTime).inMilliseconds;
+    try {
+      getIt<AnalyticsManager>().logBackgroundSyncComplete(
+        currencyCount: updatedCurrencies.length,
+        durationMs: durationMs,
+      );
+    } catch (_) {
+      // Analytics not available
+    }
+  }
+
   /// Stop background sync
   void stopBackgroundSync() {
     AppLogger.i('SyncService', 'Stopping background sync');
@@ -368,6 +415,8 @@ class CurrencySyncService extends ChangeNotifier {
 
   @override
   void dispose() {
+    AppLifecycleManager.instance.removeForegroundListener(_onAppForeground);
+    AppLifecycleManager.instance.removeBackgroundListener(_onAppBackground);
     _backgroundSyncTimer?.cancel();
     _debounceTimer?.cancel();
     _currencyStreamController.close();

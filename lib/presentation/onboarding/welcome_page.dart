@@ -89,6 +89,7 @@ class _WelcomePageState extends State<WelcomePage>
       animation: _animController,
       builder: (context, child) {
         return SingleChildScrollView(
+          primary: false,
           physics: const BouncingScrollPhysics(),
           child: ConstrainedBox(
             constraints: BoxConstraints(

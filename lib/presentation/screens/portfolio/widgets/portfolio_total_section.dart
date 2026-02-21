@@ -43,7 +43,7 @@ class PortfolioTotalSection extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: appTheme.primary.withOpacity(0.1),
+              color: appTheme.primary.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -72,7 +72,7 @@ class PortfolioTotalSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: appTheme.primary.withOpacity(0.15),
+                color: appTheme.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -104,7 +104,7 @@ class PortfolioTotalSection extends StatelessWidget {
         color: appTheme.background,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: appTheme.primary.withOpacity(0.2),
+          color: appTheme.primary.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -163,7 +163,7 @@ class PortfolioTotalSection extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: appTheme.primary.withOpacity(0.1),
+            color: appTheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(

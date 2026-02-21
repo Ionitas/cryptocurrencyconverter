@@ -202,6 +202,7 @@ class _FeaturesPageState extends State<FeaturesPage>
 
   Widget _buildFeatureShowcase(AppTheme appTheme) {
     return ListView.builder(
+      primary: false,
       padding: const EdgeInsets.symmetric(horizontal: 20),
       physics: const BouncingScrollPhysics(),
       itemCount: _features.length,

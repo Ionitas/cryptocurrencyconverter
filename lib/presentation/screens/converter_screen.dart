@@ -9,6 +9,7 @@ import '../../core/services/onboarding_service.dart';
 import '../../core/services/portfolio_storage_service.dart';
 import '../../core/services/currency_sync_service.dart';
 import '../../core/services/analytics/logging_system.dart';
+import '../../core/services/analytics/analytics_manager.dart';
 import '../../core/services/subscription/subscription_manager.dart';
 import '../widgets/widgets.dart';
 import '../widgets/subscription_paywall.dart';
@@ -55,6 +56,14 @@ class ConverterScreenState extends State<ConverterScreen>
   String _statusMessage = '';
   bool _fromCache = false;
 
+  // Debounce timer for saving state
+  Timer? _saveDebounce;
+
+  // Cached conversion maps — recomputed only when inputs change
+  Map<String, double> _cachedConversions = {};
+  Map<String, double> _cachedExchangeRates = {};
+  String? _lastConversionKey; // tracks what the cache was computed for
+
   // Calculator animation state
   late AnimationController _calculatorController;
   late Animation<double> _calculatorAnimation;
@@ -68,6 +77,9 @@ class ConverterScreenState extends State<ConverterScreen>
     currentAmount = 0.5;
     displayValue = '0.5';
     _appTheme.addListener(_onThemeChanged);
+
+    // Log screen view
+    getIt<AnalyticsManager>().logScreenView('converter');
 
     // Initialize calculator animation with smoother curves
     _calculatorController = AnimationController(
@@ -207,9 +219,8 @@ class ConverterScreenState extends State<ConverterScreen>
         _fromCache = _syncService.lastSyncFromCache;
         _statusMessage = 'Loaded from cache';
       });
-
-      // Initialize for background updates (not first time)
-      _syncService.initialize(isFirstTime: false);
+      // Background sync is already wired via onCurrenciesUpdated in injection.dart
+      // No need to call initialize() again here
     } else {
       // No cached data, load fresh
       _loadData();
@@ -257,6 +268,7 @@ class ConverterScreenState extends State<ConverterScreen>
     _syncStateSubscription?.cancel();
     _appTheme.removeListener(_onThemeChanged);
     _calculatorController.dispose();
+    _saveDebounce?.cancel();
     super.dispose();
   }
 
@@ -267,6 +279,10 @@ class ConverterScreenState extends State<ConverterScreen>
   Future<void> _loadData({bool forceRefresh = false}) async {
     AppLogger.i(
         'Converter', '_loadData() called - forceRefresh: $forceRefresh');
+
+    if (forceRefresh) {
+      getIt<AnalyticsManager>().logUserEngagement(action: 'manual_refresh');
+    }
 
     setState(() {
       _isLoading = _allCurrencies.isEmpty;
@@ -322,10 +338,13 @@ class ConverterScreenState extends State<ConverterScreen>
             currencyMap[symbol]!.id != _selectedCurrency?.id)
         .map((symbol) => currencyMap[symbol]!)
         .toList();
+    // Invalidate conversion cache when display list changes
+    _lastConversionKey = null;
   }
 
   void _removeCurrency(Currency currency) {
     AppLogger.d('Converter', 'Removing currency: ${currency.symbol}');
+    getIt<AnalyticsManager>().logCurrencyRemoved(currency.symbol);
     setState(() {
       _displayCurrencySymbols.remove(currency.symbol);
       _displayCurrencyOrder.remove(currency.symbol);
@@ -341,6 +360,7 @@ class ConverterScreenState extends State<ConverterScreen>
     AppLogger.d('Converter', 'Adding currency: ${currency.symbol}');
     AppLogger.d('Converter', 'Before add - symbols: $_displayCurrencySymbols');
     AppLogger.d('Converter', 'Before add - order: $_displayCurrencyOrder');
+    getIt<AnalyticsManager>().logCurrencyAdded(currency.symbol);
 
     setState(() {
       _displayCurrencySymbols.add(currency.symbol);
@@ -368,6 +388,7 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   void _onReorderCurrencies(int oldIndex, int newIndex) {
+    getIt<AnalyticsManager>().logCurrencyReordered();
     setState(() {
       if (newIndex > oldIndex) newIndex -= 1;
       final currency = _displayCurrencies.removeAt(oldIndex);
@@ -385,6 +406,7 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   void _swapCurrency(Currency currency, int index) {
+    final fromSymbol = _selectedCurrency?.symbol ?? '';
     setState(() {
       final convertedAmount = _repository.convert(
         currentAmount,
@@ -405,6 +427,12 @@ class ConverterScreenState extends State<ConverterScreen>
       resetCalculatorState();
       _updateDisplayCurrencies();
     });
+
+    getIt<AnalyticsManager>().logCurrencySwapped(
+      from: fromSymbol,
+      to: currency.symbol,
+      amount: currentAmount,
+    );
 
     // Save the new currency and amount
     _saveConverterState().catchError((e) {
@@ -445,14 +473,18 @@ class ConverterScreenState extends State<ConverterScreen>
     setState(() {
       handleCalculatorInput(value);
     });
-    // Save after calculator input - don't block, just fire and forget
-    _saveConverterState().catchError((e) {
-      AppLogger.e('Converter', 'Failed to save after calculator input',
-          error: e);
+    // Debounce saves on every keystroke — only persist after 500ms of inactivity
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(const Duration(milliseconds: 500), () {
+      _saveConverterState().catchError((e) {
+        AppLogger.e('Converter', 'Failed to save after calculator input',
+            error: e);
+      });
     });
   }
 
   void _showCalculator() {
+    getIt<AnalyticsManager>().logUserEngagement(action: 'calculator_open');
     _calculatorController.animateTo(
       1.0,
       duration: const Duration(milliseconds: 350),
@@ -461,6 +493,7 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   void _hideCalculator() {
+    getIt<AnalyticsManager>().logUserEngagement(action: 'calculator_close');
     _calculatorController.animateTo(
       0.0,
       duration: const Duration(milliseconds: 280),
@@ -542,6 +575,7 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   Future<void> _showSettings() async {
+    getIt<AnalyticsManager>().logUserEngagement(action: 'settings_open');
     final lastUpdate = await _repository.getLastUpdateTime();
     final nextUpdate = _repository.getNextUpdateTime();
 
@@ -718,17 +752,20 @@ class ConverterScreenState extends State<ConverterScreen>
         ? _calculatorHeight + 20
         : (isTablet ? 100.0 : 80.0);
 
-    // Pre-calculate conversions to avoid redundant calculations during build
-    final conversions = <String, double>{};
-    final exchangeRates = <String, double>{};
-    if (_selectedCurrency != null) {
+    // Recompute conversions only when the inputs actually change
+    final conversionKey =
+        '${_selectedCurrency?.symbol}_${currentAmount}_${_displayCurrencies.map((c) => c.symbol).join(",")}';
+    if (_lastConversionKey != conversionKey && _selectedCurrency != null) {
+      _lastConversionKey = conversionKey;
+      _cachedConversions = {};
+      _cachedExchangeRates = {};
       for (final currency in _displayCurrencies) {
-        conversions[currency.symbol] = _repository.convert(
+        _cachedConversions[currency.symbol] = _repository.convert(
           currentAmount,
           _selectedCurrency!,
           currency,
         );
-        exchangeRates[currency.symbol] =
+        _cachedExchangeRates[currency.symbol] =
             _repository.convert(1.0, _selectedCurrency!, currency);
       }
     }
@@ -752,8 +789,8 @@ class ConverterScreenState extends State<ConverterScreen>
                   currency: currency,
                   selectedCurrency: _selectedCurrency!,
                   index: index,
-                  convertedAmount: conversions[currency.symbol] ?? 0.0,
-                  exchangeRate: exchangeRates[currency.symbol] ?? 0.0,
+                  convertedAmount: _cachedConversions[currency.symbol] ?? 0.0,
+                  exchangeRate: _cachedExchangeRates[currency.symbol] ?? 0.0,
                   appTheme: _appTheme,
                   onTap: () => _swapCurrency(currency, index),
                   onDismissed: () => _removeCurrency(currency),
@@ -839,7 +876,7 @@ class _MeasureSizeState extends State<_MeasureSize> {
     WidgetsBinding.instance.addPostFrameCallback(_measureSize);
   }
 
-  void _measureSize(_) {
+  void _measureSize(Duration _) {
     final renderBox = context.findRenderObject() as RenderBox?;
     if (renderBox != null && renderBox.hasSize) {
       widget.onChange(renderBox.size);

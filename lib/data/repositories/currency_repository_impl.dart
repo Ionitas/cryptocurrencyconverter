@@ -1,24 +1,21 @@
 import 'package:flutter/foundation.dart';
-import '../../core/config/supabase_config.dart';
 import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
 import '../datasources/crypto_api_datasource.dart';
 import '../datasources/fiat_api_datasource.dart';
 import '../datasources/local_cache_datasource.dart';
-import '../datasources/supabase_datasource.dart';
 
 /// Implementation of CurrencyRepository
 ///
-/// Data fetching priority:
+/// Client-side only data fetching:
 /// 1. Local cache (return immediately, refresh in background if stale)
-/// 2. Supabase backend (centralized, updated 3-5x/day)
-/// 3. Direct API calls (CoinCap → CoinGecko → fallback)
+/// 2. Direct API calls in parallel (CoinCap/CoinGecko + ExchangeRate)
+/// 3. Heavy JSON parsing offloaded to isolates via compute()
 ///
 /// 24h change calculation:
 /// - Crypto: Comes directly from CoinCap/CoinGecko APIs
 /// - Fiat: Calculated by comparing current rates with historical rates (24h ago)
 class CurrencyRepositoryImpl implements CurrencyRepository {
-  final SupabaseDataSource? supabaseDataSource;
   final CryptoApiDataSource cryptoDataSource;
   final FiatApiDataSource fiatDataSource;
   final LocalCacheDataSource cacheDataSource;
@@ -30,7 +27,6 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
   VoidCallback? onCurrenciesUpdated;
 
   CurrencyRepositoryImpl({
-    this.supabaseDataSource,
     required this.cryptoDataSource,
     required this.fiatDataSource,
     required this.cacheDataSource,
@@ -78,7 +74,7 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
       final cacheLoadTime =
           DateTime.now().difference(overallStartTime).inMilliseconds;
       _debugLog(
-          '✓ Loaded ${_currencies.length} currencies from CACHE in ${cacheLoadTime}ms');
+          'Loaded ${_currencies.length} currencies from CACHE in ${cacheLoadTime}ms');
 
       // If cache is stale, trigger background refresh
       if (!cacheIsValid && !_isBackgroundRefreshing) {
@@ -96,108 +92,22 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
       );
     }
 
-    // Try Supabase first (centralized backend)
-    if (supabaseDataSource != null && SupabaseConfig.isConfigured) {
-      try {
-        _debugLog('Attempting to fetch from Supabase...');
-        final supabaseResult = await _fetchFromSupabase();
-        if (supabaseResult != null) {
-          final totalTime =
-              DateTime.now().difference(overallStartTime).inMilliseconds;
-          _debugLog('✓ Total load time: ${totalTime}ms (from Supabase)');
-          return supabaseResult;
-        }
-      } catch (e) {
-        _debugLog('✗ Supabase fetch failed: $e');
-        // Continue to fallback APIs
-      }
-    } else {
-      _debugLog('Supabase not configured or datasource is null');
-    }
-
-    // Fallback to direct API calls
-    _debugLog('⚠ Falling back to direct API calls...');
+    // No cache or force refresh: fetch from APIs directly
+    _debugLog('Fetching from direct APIs...');
     final fallbackResult = await _fetchFromDirectApis();
     final totalTime =
         DateTime.now().difference(overallStartTime).inMilliseconds;
-    _debugLog('✓ Total load time: ${totalTime}ms (from fallback APIs)');
+    _debugLog('Total load time: ${totalTime}ms (from APIs)');
     return fallbackResult;
   }
 
-  /// Fetches rates from Supabase backend
-  Future<LoadResult?> _fetchFromSupabase() async {
-    if (supabaseDataSource == null) return null;
-
-    try {
-      final startTime = DateTime.now();
-      _debugLog('Fetching rates from Supabase...');
-      final isPremiumUser = cacheDataSource.isPremium();
-
-      // Fetch all rates from Supabase
-      final allRates = await supabaseDataSource!.fetchAllRates();
-      final fetchTime = DateTime.now().difference(startTime).inMilliseconds;
-
-      // Get last update time from Supabase for logging
-      final supabaseLastUpdate = await supabaseDataSource!.getLastUpdateTime();
-      if (supabaseLastUpdate != null) {
-        final updateAge = DateTime.now().difference(supabaseLastUpdate);
-        _debugLog(
-            'Supabase data last updated: ${supabaseLastUpdate.toIso8601String()} (${updateAge.inMinutes} minutes ago)');
-      }
-
-      if (allRates.isEmpty) {
-        _debugLog('✗ Supabase returned empty rates after ${fetchTime}ms');
-        return null;
-      }
-
-      // Save historical snapshot for 24h change calculation (if needed)
-      if (cacheDataSource.shouldSaveHistoricalSnapshot()) {
-        final currentCurrencies = cacheDataSource.getCachedCurrencies();
-        if (currentCurrencies.isNotEmpty) {
-          _debugLog('Saving historical snapshot for 24h change calculation...');
-          await cacheDataSource.saveHistoricalRates(currentCurrencies);
-        }
-      }
-
-      // Apply premium limit for crypto
-      final cryptoLimit = isPremiumUser ? 250 : 100;
-      final cryptoRates =
-          allRates.where((c) => c.isCrypto).take(cryptoLimit).toList();
-      final fiatRates = allRates.where((c) => !c.isCrypto).toList();
-
-      // Apply 24h change calculation for fiat currencies
-      final fiatWithChange = _applyFiat24hChange(fiatRates);
-      _currencies = [...fiatWithChange, ...cryptoRates];
-
-      if (_currencies.isNotEmpty) {
-        await cacheDataSource.saveCurrencies(_currencies);
-        final totalTime = DateTime.now().difference(startTime).inMilliseconds;
-        _debugLog(
-            '✓ Fetched from SUPABASE: ${_currencies.length} currencies (${fiatRates.length} fiat, ${cryptoRates.length} crypto) in ${totalTime}ms');
-        _debugLog('  - Network fetch: ${fetchTime}ms');
-        _debugLog(
-            '  - Premium user: $isPremiumUser, crypto limit: $cryptoLimit');
-        return LoadResult(
-          success: true,
-          fromCache: false,
-          message: 'Fetched from Supabase',
-          currencies: _currencies,
-        );
-      }
-
-      return null;
-    } catch (e) {
-      _debugLog('✗ Supabase error: $e');
-      return null;
-    }
-  }
-
-  /// Fallback: Fetches rates directly from external APIs
+  /// Fetches rates directly from external APIs using parallel requests
+  /// JSON parsing is offloaded to isolates for performance
   Future<LoadResult> _fetchFromDirectApis() async {
     final startTime = DateTime.now();
     try {
       _debugLog(
-          '⚠ Falling back to direct API calls (CoinCap/CoinGecko/ExchangeRate)...');
+          'Fetching from direct APIs (CoinCap/CoinGecko + ExchangeRate) in parallel...');
       final isPremiumUser = cacheDataSource.isPremium();
 
       // Save historical snapshot for 24h change calculation (if needed)
@@ -209,6 +119,7 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
         }
       }
 
+      // Fetch fiat and crypto in parallel for maximum speed
       final results = await Future.wait([
         fiatDataSource.fetchFiatCurrencies(),
         cryptoDataSource.fetchCryptocurrencies(isPremium: isPremiumUser),
@@ -218,24 +129,25 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
       final fiat = results[0];
       final crypto = results[1];
 
-      // Apply 24h change calculation for fiat currencies
-      final fiatWithChange = _applyFiat24hChange(fiat);
+      // Apply 24h change calculation for fiat currencies using compute() isolate
+      final fiatWithChange = await _applyFiat24hChangeIsolate(fiat);
       _currencies = [...fiatWithChange, ...crypto];
 
       if (_currencies.isNotEmpty) {
-        await cacheDataSource.saveCurrencies(_currencies);
+        // Save to cache (non-blocking)
+        cacheDataSource.saveCurrencies(_currencies);
         final totalTime = DateTime.now().difference(startTime).inMilliseconds;
         _debugLog(
-            '✓ Fetched from DIRECT APIs: ${_currencies.length} currencies (${fiat.length} fiat, ${crypto.length} crypto) in ${totalTime}ms');
+            'Fetched from DIRECT APIs: ${_currencies.length} currencies (${fiat.length} fiat, ${crypto.length} crypto) in ${totalTime}ms');
         return LoadResult(
           success: true,
           fromCache: false,
-          message: 'Fetched from direct APIs',
+          message: 'Fetched fresh data',
           currencies: _currencies,
         );
       }
 
-      _debugLog('✗ Direct APIs returned no data after ${fetchTime}ms');
+      _debugLog('Direct APIs returned no data after ${fetchTime}ms');
       return LoadResult(
         success: false,
         fromCache: false,
@@ -243,11 +155,11 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
         currencies: [],
       );
     } catch (e) {
-      _debugLog('✗ Direct API error: $e - Attempting to load from cache');
+      _debugLog('Direct API error: $e - Attempting to load from cache');
       // On error, try to load from cache
       _currencies = cacheDataSource.getCachedCurrencies();
       if (_currencies.isNotEmpty) {
-        _debugLog('✓ Recovered ${_currencies.length} currencies from cache');
+        _debugLog('Recovered ${_currencies.length} currencies from cache');
       }
       return LoadResult(
         success: _currencies.isNotEmpty,
@@ -302,82 +214,51 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
 
     try {
       // Before fetching new data, save current rates as historical snapshot
-      // This is used for calculating 24h change for fiat currencies
       if (cacheDataSource.shouldSaveHistoricalSnapshot() &&
           _currencies.isNotEmpty) {
         _debugLog('Saving historical snapshot for 24h change calculation...');
         await cacheDataSource.saveHistoricalRates(_currencies);
       }
 
-      List<Currency>? newCurrencies;
+      final isPremiumUser = cacheDataSource.isPremium();
 
-      // Try Supabase first
-      if (supabaseDataSource != null && SupabaseConfig.isConfigured) {
-        try {
-          final isPremiumUser = cacheDataSource.isPremium();
-          final allRates = await supabaseDataSource!.fetchAllRates();
+      // Fetch both in parallel
+      final results = await Future.wait([
+        fiatDataSource.fetchFiatCurrencies(),
+        cryptoDataSource.fetchCryptocurrencies(isPremium: isPremiumUser),
+      ]);
 
-          if (allRates.isNotEmpty) {
-            final cryptoLimit = isPremiumUser ? 250 : 100;
-            final cryptoRates =
-                allRates.where((c) => c.isCrypto).take(cryptoLimit).toList();
-            final fiatRates = allRates.where((c) => !c.isCrypto).toList();
+      final fiatRates = results[0];
+      final cryptoRates = results[1];
 
-            // Apply 24h change calculation for fiat
-            final fiatWithChange = _applyFiat24hChange(fiatRates);
-            newCurrencies = [...fiatWithChange, ...cryptoRates];
-            _debugLog(
-                '✓ Background: Fetched ${newCurrencies.length} from Supabase');
-          }
-        } catch (e) {
-          _debugLog('✗ Background Supabase error: $e');
-        }
-      }
+      if (fiatRates.isNotEmpty || cryptoRates.isNotEmpty) {
+        // Apply 24h change calculation for fiat using isolate
+        final fiatWithChange = await _applyFiat24hChangeIsolate(fiatRates);
+        final newCurrencies = [...fiatWithChange, ...cryptoRates];
 
-      // Fallback to direct APIs if Supabase failed
-      if (newCurrencies == null || newCurrencies.isEmpty) {
-        try {
-          final isPremiumUser = cacheDataSource.isPremium();
-          final results = await Future.wait([
-            fiatDataSource.fetchFiatCurrencies(),
-            cryptoDataSource.fetchCryptocurrencies(isPremium: isPremiumUser),
-          ]);
+        if (newCurrencies.isNotEmpty) {
+          _currencies = newCurrencies;
+          await cacheDataSource.saveCurrencies(_currencies);
 
-          final fiatRates = results[0];
-          final cryptoRates = results[1];
-
-          // Apply 24h change calculation for fiat
-          final fiatWithChange = _applyFiat24hChange(fiatRates);
-          newCurrencies = [...fiatWithChange, ...cryptoRates];
+          final duration = DateTime.now().difference(startTime).inMilliseconds;
           _debugLog(
-              '✓ Background: Fetched ${newCurrencies.length} from direct APIs');
-        } catch (e) {
-          _debugLog('✗ Background direct API error: $e');
+              'Background refresh complete: ${_currencies.length} currencies in ${duration}ms');
+
+          // Notify listeners that currencies have been updated
+          onCurrenciesUpdated?.call();
         }
-      }
-
-      // Update currencies if we got new data
-      if (newCurrencies != null && newCurrencies.isNotEmpty) {
-        _currencies = newCurrencies;
-        await cacheDataSource.saveCurrencies(_currencies);
-
-        final duration = DateTime.now().difference(startTime).inMilliseconds;
-        _debugLog(
-            '✓ Background refresh complete: ${_currencies.length} currencies in ${duration}ms');
-
-        // Notify listeners that currencies have been updated
-        onCurrenciesUpdated?.call();
       }
     } catch (e) {
-      _debugLog('✗ Background refresh error: $e');
+      _debugLog('Background refresh error: $e');
     } finally {
       _isBackgroundRefreshing = false;
     }
   }
 
-  /// Calculates and applies 24h change percentage for fiat currencies
-  /// by comparing current rates with historical rates from cache
-  List<Currency> _applyFiat24hChange(List<Currency> fiatCurrencies) {
+  /// Calculates 24h change for fiat currencies using a compute() isolate
+  /// to avoid blocking the main thread with potentially heavy map operations
+  Future<List<Currency>> _applyFiat24hChangeIsolate(
+      List<Currency> fiatCurrencies) async {
     final historicalRates = cacheDataSource.getHistoricalRates();
 
     if (historicalRates == null || historicalRates.isEmpty) {
@@ -385,9 +266,29 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
       return fiatCurrencies;
     }
 
-    _debugLog(
-        'Calculating 24h change for ${fiatCurrencies.length} fiat currencies...');
+    // Offload to isolate via compute() for large lists
+    if (fiatCurrencies.length > 20) {
+      return compute(
+        _computeFiat24hChange,
+        _Fiat24hChangePayload(
+          fiatCurrencies: fiatCurrencies,
+          historicalRates: historicalRates,
+        ),
+      );
+    }
 
+    // For small lists, do it on the main thread
+    return _applyFiat24hChange(fiatCurrencies, historicalRates);
+  }
+
+  /// Static top-level function for compute() isolate
+  static List<Currency> _computeFiat24hChange(_Fiat24hChangePayload payload) {
+    return _applyFiat24hChange(payload.fiatCurrencies, payload.historicalRates);
+  }
+
+  /// Pure function to calculate 24h change - works in any isolate
+  static List<Currency> _applyFiat24hChange(
+      List<Currency> fiatCurrencies, Map<String, double> historicalRates) {
     return fiatCurrencies.map((currency) {
       final historicalRate = historicalRates[currency.code];
       if (historicalRate == null || historicalRate == 0) {
@@ -406,4 +307,15 @@ class CurrencyRepositoryImpl implements CurrencyRepository {
   Future<LoadResult> refreshCurrencies() async {
     return loadCurrencies(forceRefresh: true);
   }
+}
+
+/// Payload for passing data to compute() isolate
+class _Fiat24hChangePayload {
+  final List<Currency> fiatCurrencies;
+  final Map<String, double> historicalRates;
+
+  _Fiat24hChangePayload({
+    required this.fiatCurrencies,
+    required this.historicalRates,
+  });
 }

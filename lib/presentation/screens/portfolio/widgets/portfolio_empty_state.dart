@@ -25,7 +25,7 @@ class PortfolioEmptyState extends StatelessWidget {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: appTheme.primary.withOpacity(0.1),
+                color: appTheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -66,7 +66,7 @@ class PortfolioEmptyState extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
-                      color: appTheme.primary.withOpacity(0.3),
+                      color: appTheme.primary.withValues(alpha: 0.3),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),

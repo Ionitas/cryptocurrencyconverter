@@ -118,12 +118,12 @@ class StartupManager {
     );
 
     if (kDebugMode) {
-      print('=== Startup Performance ===');
-      print('Total: ${_startupTimer.elapsedMilliseconds}ms');
+      debugPrint('=== Startup Performance ===');
+      debugPrint('Total: ${_startupTimer.elapsedMilliseconds}ms');
       _initTimes.forEach((name, duration) {
-        print('  $name: ${duration.inMilliseconds}ms');
+        debugPrint('  $name: ${duration.inMilliseconds}ms');
       });
-      print('===========================');
+      debugPrint('===========================');
     }
   }
 

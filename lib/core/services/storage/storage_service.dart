@@ -10,7 +10,7 @@ abstract class IStorageService {
 }
 
 /// Implementation of storage service using SharedPreferences
-/// Use getIt<StorageService>() to access the singleton instance
+/// Use `getIt<StorageService>()` to access the singleton instance
 class StorageService implements IStorageService {
   SharedPreferences? _prefs;
 

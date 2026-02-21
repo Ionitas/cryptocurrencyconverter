@@ -139,7 +139,7 @@ class _PortfolioEntryCardState extends State<PortfolioEntryCard>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            widget.appTheme.error.withOpacity(0.8),
+            widget.appTheme.error.withValues(alpha: 0.8),
             widget.appTheme.error,
           ],
           begin: Alignment.centerLeft,
@@ -179,7 +179,7 @@ class _PortfolioEntryCardState extends State<PortfolioEntryCard>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -248,7 +248,7 @@ class _PortfolioEntryCardState extends State<PortfolioEntryCard>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: widget.appTheme.primary.withOpacity(0.1),
+            color: widget.appTheme.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(

@@ -123,20 +123,20 @@ class _CountrySelectionPageState extends State<CountrySelectionPage> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: isSelected
-                  ? appTheme.primary.withOpacity(0.2)
-                  : appTheme.surface.withOpacity(0.8),
+                  ? appTheme.primary.withValues(alpha: 0.2)
+                  : appTheme.surface.withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isSelected
                     ? appTheme.primary
-                    : Colors.white.withOpacity(0.15),
+                    : Colors.white.withValues(alpha: 0.15),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
                   color: isSelected
-                      ? appTheme.primary.withOpacity(0.3)
-                      : Colors.black.withOpacity(0.1),
+                      ? appTheme.primary.withValues(alpha: 0.3)
+                      : Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 4),
                 ),
@@ -204,10 +204,10 @@ class _CountrySelectionPageState extends State<CountrySelectionPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: appTheme.surface.withOpacity(0.7),
+              color: appTheme.surface.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 width: 1,
               ),
             ),
@@ -231,6 +231,7 @@ class _CountrySelectionPageState extends State<CountrySelectionPage> {
 
   Widget _buildCountryList(AppTheme appTheme) {
     return ListView.builder(
+      primary: false,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       itemCount: _filteredCountries.length,
       itemBuilder: (context, index) {
@@ -245,13 +246,13 @@ class _CountrySelectionPageState extends State<CountrySelectionPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? appTheme.primary.withOpacity(0.15)
-                    : appTheme.surface.withOpacity(0.5),
+                    ? appTheme.primary.withValues(alpha: 0.15)
+                    : appTheme.surface.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isSelected
                       ? appTheme.primary
-                      : Colors.white.withOpacity(0.08),
+                      : Colors.white.withValues(alpha: 0.08),
                   width: isSelected ? 2 : 1,
                 ),
               ),
@@ -309,7 +310,7 @@ class _CountrySelectionPageState extends State<CountrySelectionPage> {
             boxShadow: isEnabled
                 ? [
                     BoxShadow(
-                      color: appTheme.primary.withOpacity(0.4),
+                      color: appTheme.primary.withValues(alpha: 0.4),
                       blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),

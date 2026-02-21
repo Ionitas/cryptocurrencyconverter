@@ -23,7 +23,7 @@ class BlurContainer extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: sigmaBlur, sigmaY: sigmaBlur),
         child: Container(
-          color: color ?? Colors.black.withOpacity(0.1),
+          color: color ?? Colors.black.withValues(alpha: 0.1),
           child: child,
         ),
       ),

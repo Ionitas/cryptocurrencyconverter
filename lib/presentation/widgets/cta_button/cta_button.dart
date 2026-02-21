@@ -45,7 +45,7 @@ class CTAButton extends StatelessWidget {
             ? null
             : [
                 BoxShadow(
-                  color: const Color(0xFF7B68EE).withOpacity(0.4),
+                  color: const Color(0xFF7B68EE).withValues(alpha: 0.4),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),

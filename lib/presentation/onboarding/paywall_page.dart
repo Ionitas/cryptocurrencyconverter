@@ -32,6 +32,7 @@ class _PaywallPageState extends State<PaywallPage>
   late AnimationController _animController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  final ScrollController _scrollController = ScrollController();
 
   final SubscriptionService _subscriptionService = SubscriptionService.instance;
 
@@ -177,6 +178,7 @@ class _PaywallPageState extends State<PaywallPage>
   @override
   void dispose() {
     _animController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -225,9 +227,12 @@ class _PaywallPageState extends State<PaywallPage>
         // Scrollable content with visible scrollbar
         Expanded(
           child: Scrollbar(
+            controller: _scrollController,
             thumbVisibility: true,
             radius: const Radius.circular(4),
             child: SingleChildScrollView(
+              controller: _scrollController,
+              primary: false,
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
@@ -241,7 +246,7 @@ class _PaywallPageState extends State<PaywallPage>
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: appTheme.primary.withOpacity(0.4),
+                          color: appTheme.primary.withValues(alpha: 0.4),
                           blurRadius: 25,
                           offset: const Offset(0, 8),
                         ),
@@ -415,7 +420,7 @@ class _PaywallPageState extends State<PaywallPage>
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: appTheme.primary.withOpacity(0.15),
+              color: appTheme.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
@@ -473,8 +478,8 @@ class _PaywallPageState extends State<PaywallPage>
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected
-              ? appTheme.primary.withOpacity(0.1)
-              : appTheme.surfaceLight.withOpacity(0.5),
+              ? appTheme.primary.withValues(alpha: 0.1)
+              : appTheme.surfaceLight.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected ? appTheme.primary : Colors.transparent,
@@ -606,7 +611,7 @@ class _PaywallPageState extends State<PaywallPage>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: appTheme.primary.withOpacity(0.5),
+                    color: appTheme.primary.withValues(alpha: 0.5),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -637,7 +642,7 @@ class _PaywallPageState extends State<PaywallPage>
                             Text(
                               _selectedPackage!.storeProduct.priceString,
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
+                                color: Colors.white.withValues(alpha: 0.8),
                                 fontSize: 13,
                               ),
                             ),

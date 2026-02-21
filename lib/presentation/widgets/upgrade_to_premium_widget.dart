@@ -45,7 +45,7 @@ class UpgradeToPremiumWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
                   BoxShadow(
-                    color: appTheme.primary.withOpacity(0.3),
+                    color: appTheme.primary.withValues(alpha: 0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 5),
                   ),
@@ -145,7 +145,7 @@ class UpgradeToPremiumButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: appTheme.primary.withOpacity(0.4),
+              color: appTheme.primary.withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

@@ -7,6 +7,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/services/currency_sync_service.dart';
 import '../../../core/services/onboarding_service.dart';
 import '../../../core/services/analytics/logging_system.dart';
+import '../../../core/services/analytics/analytics_manager.dart';
 import '../../../core/services/subscription/subscription_manager.dart';
 import '../../utils/snackbar_helper.dart';
 import '../../widgets/settings_dialog.dart';
@@ -64,6 +65,9 @@ class PortfolioScreenState extends State<PortfolioScreen>
     _controller.loadCurrencies().then((_) {
       _fadeController.forward();
     });
+
+    // Log screen view
+    getIt<AnalyticsManager>().logScreenView('portfolio');
 
     // Load user country info
     _loadUserCountryInfo();
@@ -199,6 +203,10 @@ class PortfolioScreenState extends State<PortfolioScreen>
       allCurrencies: _controller.allCurrencies,
       onAdd: (currency, amount) {
         _controller.addEntry(currency, amount);
+        getIt<AnalyticsManager>().logPortfolioAssetAdded(
+          currency: currency.symbol,
+          amount: amount,
+        );
         SnackBarHelper.show(
           context: context,
           message: '${currency.symbol} added to portfolio',
@@ -214,6 +222,8 @@ class PortfolioScreenState extends State<PortfolioScreen>
   void _removeEntry(String id) {
     final removed = _controller.removeEntry(id);
     if (removed != null) {
+      getIt<AnalyticsManager>()
+          .logPortfolioAssetRemoved(removed.currency.symbol);
       SnackBarHelper.show(
         context: context,
         message: '${removed.currency.symbol} removed',
@@ -280,13 +290,13 @@ class PortfolioScreenState extends State<PortfolioScreen>
         color: _appTheme.surface,
         border: Border(
           top: BorderSide(
-            color: _appTheme.surfaceLight.withOpacity(0.5),
+            color: _appTheme.surfaceLight.withValues(alpha: 0.5),
             width: 1,
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
