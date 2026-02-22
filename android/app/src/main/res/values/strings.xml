@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- App Name -->
-    <string name="app_name">CurrencyX</string>
-    <string name="app_name_full">CurrencyX: Crypto &amp; Fiat</string>
-    
-    <!-- Search -->
-    <string name="search_hint">Search currencies</string>
-    
-    <!-- Content Description -->
-    <string name="cd_app_icon">CurrencyX App Icon</string>
-    
-    <!-- For Future Use -->
     <string name="facebook_app_id" translatable="false">YOUR_FACEBOOK_APP_ID</string>
-    <string name="facebook_client_token" translatable="false">YOUR_FACEBOOK_CLIENT_TOKEN</string>
+    <!-- App Name — shown on home screen launcher -->
+    <string name="app_name">Currency Ex</string>
+    <string name="app_name_full">Currency Ex: Crypto &amp; Fiat</string>
+
+    <!-- App Description — indexed by Google Play and Android system for search.
+         Keep it keyword-rich but readable. 80 chars used as short description
+         in Play Console; system also reads this for app indexing. -->
+    <string name="app_description">Convert 225+ currencies. Real-time crypto &amp; fiat rates, portfolio tracker &amp; calculator.</string>
+
+    <!-- Search hint for any in-app search fields -->
+    <string name="search_hint">Search currencies (BTC, USD, EUR…)</string>
+
+    <!-- Content description for accessibility -->
+    <string name="cd_app_icon">Currency Ex App Icon</string>
+
+    <!-- Short tagline used in onboarding / marketing strings -->
+    <string name="app_tagline">Real-time crypto &amp; fiat currency converter</string>
 </resources>

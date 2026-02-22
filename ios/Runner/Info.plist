@@ -2,84 +2,148 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
+	<!-- ========================================== -->
+	<!-- BUNDLE IDENTITY                            -->
+	<!-- ========================================== -->
+
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>CurrencyX: Crypto &amp; Fiat</string>
-	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+
+	<!-- Version — driven by pubspec.yaml via Flutter build system -->
+	<key>CFBundleShortVersionString</key>
+	<string>$(FLUTTER_BUILD_NAME)</string>
+	<key>CFBundleVersion</key>
+	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
+	<!-- ========================================== -->
+	<!-- APP NAME & DISCOVERABILITY                 -->
+	<!-- ========================================== -->
+
+	<!-- Internal bundle name — must match original to avoid validation errors -->
+	<key>CFBundleName</key>
+	<string>cryptocurrencyconverter</string>
+
+	<!-- Home screen display name (30 chars max for App Store) -->
+	<key>CFBundleDisplayName</key>
+	<string>Currency Ex</string>
+
+	<!-- Siri &amp; VoiceOver spoken name — natural language pronunciation -->
 	<key>CFBundleSpokenName</key>
-	<string>Currency X</string>
-	<key>CFBundleURLTypes</key>
+	<string>Currency Ex</string>
+
+	<!-- Spotlight on-device indexing (kMDItemKeywords).
+	     Indexed by iOS/macOS Spotlight so the app surfaces when users
+	     type any of these terms in Spotlight Search on their device.
+	     Does NOT affect App Store search rank — use App Store Connect
+	     Keywords field for that. Keep ~20 high-signal, non-duplicated terms. -->
+	<key>kMDItemKeywords</key>
 	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>com.currencyx.app</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>currencyx</string>
-			</array>
-		</dict>
+		<string>currency converter</string>
+		<string>crypto converter</string>
+		<string>bitcoin price</string>
+		<string>ethereum price</string>
+		<string>exchange rate</string>
+		<string>money converter</string>
+		<string>forex</string>
+		<string>cryptocurrency</string>
+		<string>portfolio tracker</string>
+		<string>USD EUR GBP</string>
+		<string>fiat currency</string>
+		<string>real-time rates</string>
+		<string>crypto calculator</string>
+		<string>BTC ETH SOL</string>
+		<string>travel money</string>
+		<string>finance app</string>
+		<string>coin tracker</string>
+		<string>currency calculator</string>
+		<string>crypto portfolio</string>
+		<string>live exchange rates</string>
 	</array>
+
+	<!-- Declared localization regions.
+	     Tells the App Store & Spotlight that the app targets these locales,
+	     which improves discoverability in international markets even before
+	     full localized strings are added. -->
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+		<string>de</string>
+		<string>fr</string>
+		<string>pt</string>
+		<string>zh-Hans</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>ar</string>
+		<string>ru</string>
+		<string>it</string>
+		<string>nl</string>
+		<string>tr</string>
+		<string>pl</string>
+		<string>sv</string>
+		<string>da</string>
+		<string>fi</string>
+		<string>nb</string>
+		<string>hi</string>
+		<string>id</string>
+	</array>
+
+	<!-- ========================================== -->
+	<!-- APP STORE & SYSTEM METADATA                -->
+	<!-- ========================================== -->
+
+	<!-- App category — must match Finance selection in App Store Connect -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.finance</string>
+
+	<!-- Requires iOS (not macOS Catalyst only) -->
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+
+	<!-- Encryption export compliance — no exempt encryption used -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+
+	<!-- ========================================== -->
+	<!-- NETWORK SECURITY                           -->
+	<!-- ========================================== -->
+
 	<key>NSAppTransportSecurity</key>
 	<dict>
+		<!-- Block all plain HTTP; HTTPS only -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>api.coincap.io</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-			<key>api.coingecko.com</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-			<key>api.exchangerate-api.com</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-		</dict>
 	</dict>
+
+	<!-- ========================================== -->
+	<!-- PRIVACY & TRACKING                         -->
+	<!-- ========================================== -->
+
+	<!-- ATT prompt string — required for App Tracking Transparency framework -->
 	<key>NSUserTrackingUsageDescription</key>
 	<string>We use this to measure advertising effectiveness and improve your experience with personalized content.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your location helps us suggest relevant currencies based on your country.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Your location helps us suggest relevant currencies based on your country.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Your location helps us suggest relevant currencies based on your country.</string>
+
+	<!-- ========================================== -->
+	<!-- SKADNETWORK — AD ATTRIBUTION               -->
+	<!-- ========================================== -->
+
 	<key>SKAdNetworkItems</key>
 	<array>
+		<!-- Apple -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>cstr6suwn9.skadnetwork</string>
 		</dict>
+		<!-- Google Ads -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>v9wrttp9kq.skadnetwork</string>
@@ -96,6 +160,7 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>4dzt52r2t5.skadnetwork</string>
 		</dict>
+		<!-- Meta (Facebook) -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>22mmun2rn5.skadnetwork</string>
@@ -104,6 +169,7 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>su67r6k2v3.skadnetwork</string>
 		</dict>
+		<!-- Twitter / X -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>424m5254lk.skadnetwork</string>
@@ -112,18 +178,22 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>kbd757ywx3.skadnetwork</string>
 		</dict>
+		<!-- Snap -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>2fnua5tdw4.skadnetwork</string>
 		</dict>
+		<!-- TikTok -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>238da6jt44.skadnetwork</string>
 		</dict>
+		<!-- ironSource -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>22scbeg5km.skadnetwork</string>
 		</dict>
+		<!-- AppLovin / MAX -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>9t245vhmpl.skadnetwork</string>
@@ -136,10 +206,12 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>gd9vwv8r4l.skadnetwork</string>
 		</dict>
+		<!-- Digital Turbine -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>hs6bdukanm.skadnetwork</string>
 		</dict>
+		<!-- Verizon / Yahoo -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>yclnxrl5pm.skadnetwork</string>
@@ -148,14 +220,17 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>578prtvx9j.skadnetwork</string>
 		</dict>
+		<!-- Criteo -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>c6k4g58q6z.skadnetwork</string>
 		</dict>
+		<!-- Moloco -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>s39g8k73mm.skadnetwork</string>
 		</dict>
+		<!-- Liftoff -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>3qy4746246.skadnetwork</string>
@@ -164,109 +239,131 @@
 			<key>SKAdNetworkIdentifier</key>
 			<string>3sh42y64q3.skadnetwork</string>
 		</dict>
+		<!-- Mintegral -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>f38h382jlk.skadnetwork</string>
 		</dict>
+		<!-- InMobi -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>prcb7njmu6.skadnetwork</string>
 		</dict>
+		<!-- Adcolony -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>v4nxqhlyqp.skadnetwork</string>
 		</dict>
+		<!-- Fyber -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>wzmmz9fp6w.skadnetwork</string>
 		</dict>
+		<!-- Chartboost -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>t38b2kh725.skadnetwork</string>
 		</dict>
+		<!-- Vungle -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>7ug5zh24hu.skadnetwork</string>
 		</dict>
+		<!-- Tapjoy -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>9rd8kqfz9q.skadnetwork</string>
 		</dict>
+		<!-- Smaato -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>n6fk4qna9b.skadnetwork</string>
 		</dict>
+		<!-- Ogury -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>4468km3ulz.skadnetwork</string>
 		</dict>
+		<!-- Bidmachine -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>2u9pt9hc89.skadnetwork</string>
 		</dict>
+		<!-- Tremor Video -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>av6w8kgt66.skadnetwork</string>
 		</dict>
+		<!-- Kidoz -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>klf5c3l5u5.skadnetwork</string>
 		</dict>
+		<!-- Reklamstore -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>ppxm28t8ap.skadnetwork</string>
 		</dict>
+		<!-- Adtiming -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>uw77j35x4d.skadnetwork</string>
 		</dict>
+		<!-- Epom -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>e5fvkxwrpn.skadnetwork</string>
 		</dict>
+		<!-- Appier -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>8c4e2ghe7u.skadnetwork</string>
 		</dict>
+		<!-- Dataseat -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>zq492l623r.skadnetwork</string>
 		</dict>
+		<!-- Jampp -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>3qcr597p9d.skadnetwork</string>
 		</dict>
+		<!-- Admost -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>ydx93a7ass.skadnetwork</string>
 		</dict>
+		<!-- Hang My Ads -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>5a6flpkh64.skadnetwork</string>
 		</dict>
+		<!-- Index Exchange -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>p78axxw29g.skadnetwork</string>
 		</dict>
+		<!-- Lifestreet -->
 		<dict>
 			<key>SKAdNetworkIdentifier</key>
 			<string>v72qych5uu.skadnetwork</string>
 		</dict>
 	</array>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>armv7</string>
-	</array>
-	<key>MinimumOSVersion</key>
-	<string>15.0</string>
+
+	<!-- ========================================== -->
+	<!-- UI CONFIGURATION                           -->
+	<!-- ========================================== -->
+
+	<!-- Supported orientations — iPhone -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- Supported orientations — iPad -->
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -274,17 +371,16 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- Launch screen storyboard (Flutter standard) -->
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+
+	<!-- Main storyboard (Flutter standard) -->
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIColorName</key>
-		<string>LaunchBackground</string>
-		<key>UIImageName</key>
-		<string>LaunchImage</string>
-	</dict>
+
+	<!-- Scene manifest (Flutter standard — single-window, no multi-scene) -->
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -306,36 +402,20 @@
 			</array>
 		</dict>
 	</dict>
+
+	<!-- Status bar — Flutter controls appearance via SystemChrome -->
 	<key>UIStatusBarHidden</key>
 	<false/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleDefault</string>
-	<key>UIUserInterfaceStyle</key>
-	<string>Automatic</string>
+
+	<!-- ProMotion 120Hz support on iPhone 13 Pro+ -->
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+
+	<!-- Pointer / trackpad / keyboard input on iPad -->
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>UIFileSharingEnabled</key>
-	<false/>
-	<key>UILibrariesRequireEntitlements</key>
-	<false/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
-	</array>
-	<key>com.apple.developer.associated-domains</key>
-	<array>
-		<string>applinks:currencycryptofiat.netlify.app</string>
-	</array>
-	<key>NSUserActivityTypes</key>
-	<array>
-		<string>com.currencyx.app.convert</string>
-	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
+
 </dict>
 </plist>

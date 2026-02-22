@@ -290,9 +290,13 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           isLightTheme ? Brightness.dark : Brightness.light,
     ));
 
+    final analyticsObserver = FirebaseAnalyticsService.instance.observer;
     return MaterialApp(
-      title: 'Currency Converter',
+      title: 'Currency Ex',
       debugShowCheckedModeBanner: false,
+      navigatorObservers: [
+        if (analyticsObserver != null) analyticsObserver,
+      ],
       theme: ThemeData(
         useMaterial3: true,
         brightness: isLightTheme ? Brightness.light : Brightness.dark,

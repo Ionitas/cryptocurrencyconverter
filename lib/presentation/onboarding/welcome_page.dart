@@ -242,7 +242,7 @@ class _WelcomePageState extends State<WelcomePage>
               colors: [appTheme.textPrimary, appTheme.textPrimary],
             ).createShader(bounds),
             child: Text(
-              'Currency Converter',
+              'Currency Ex',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: appTheme.textPrimary,
