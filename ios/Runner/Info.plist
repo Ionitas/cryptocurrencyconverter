@@ -69,34 +69,6 @@
 		<string>live exchange rates</string>
 	</array>
 
-	<!-- Declared localization regions.
-	     Tells the App Store & Spotlight that the app targets these locales,
-	     which improves discoverability in international markets even before
-	     full localized strings are added. -->
-	<key>CFBundleLocalizations</key>
-	<array>
-		<string>en</string>
-		<string>es</string>
-		<string>de</string>
-		<string>fr</string>
-		<string>pt</string>
-		<string>zh-Hans</string>
-		<string>ja</string>
-		<string>ko</string>
-		<string>ar</string>
-		<string>ru</string>
-		<string>it</string>
-		<string>nl</string>
-		<string>tr</string>
-		<string>pl</string>
-		<string>sv</string>
-		<string>da</string>
-		<string>fi</string>
-		<string>nb</string>
-		<string>hi</string>
-		<string>id</string>
-	</array>
-
 	<!-- ========================================== -->
 	<!-- APP STORE & SYSTEM METADATA                -->
 	<!-- ========================================== -->
