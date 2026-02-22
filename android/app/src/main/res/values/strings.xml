@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="facebook_app_id" translatable="false">YOUR_FACEBOOK_APP_ID</string>
     <!-- App Name — shown on home screen launcher -->
     <string name="app_name">Currency Ex</string>
     <string name="app_name_full">Currency Ex: Crypto &amp; Fiat</string>
