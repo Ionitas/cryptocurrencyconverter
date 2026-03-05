@@ -388,4 +388,197 @@ class AnalyticsManager {
   Future<void> setUserCurrencyPreference(String currency) async {
     await _firebaseAnalytics.setUserCurrencyPreference(currency);
   }
+
+  // =============================================
+  // ENHANCED ONBOARDING ANALYTICS
+  // =============================================
+
+  /// Log onboarding step with timing data
+  Future<void> logOnboardingStepWithTiming({
+    required int stepNumber,
+    required String stepName,
+    required int durationMs,
+  }) async {
+    await _firebaseAnalytics.logOnboardingStepWithTiming(
+      stepNumber: stepNumber,
+      stepName: stepName,
+      durationMs: durationMs,
+    );
+  }
+
+  /// Log country selected during onboarding
+  Future<void> logOnboardingCountrySelected({
+    required String countryCode,
+    required String countryName,
+    required bool wasAutoDetected,
+  }) async {
+    await _firebaseAnalytics.logOnboardingCountrySelected(
+      countryCode: countryCode,
+      countryName: countryName,
+      wasAutoDetected: wasAutoDetected,
+    );
+  }
+
+  /// Log purpose selected during onboarding
+  Future<void> logOnboardingPurposeSelected({
+    required String purpose,
+  }) async {
+    await _firebaseAnalytics.logOnboardingPurposeSelected(purpose: purpose);
+  }
+
+  /// Log total onboarding completion time
+  Future<void> logOnboardingCompleteTimed({
+    required int totalDurationSeconds,
+    String? countryCode,
+    String? purpose,
+  }) async {
+    await _firebaseAnalytics.logOnboardingCompleteTimed(
+      totalDurationSeconds: totalDurationSeconds,
+      countryCode: countryCode,
+      purpose: purpose,
+    );
+  }
+
+  // =============================================
+  // ENHANCED ATT / TRACKING ANALYTICS
+  // =============================================
+
+  /// Log ATT prompt shown event
+  Future<void> logAttPromptShown() async {
+    await _firebaseAnalytics.logAttPromptShown();
+  }
+
+  /// Log ATT prompt result with timing
+  Future<void> logAttPromptResult({
+    required String status,
+    required int responseTimeMs,
+    required bool wasFirstRequest,
+  }) async {
+    await _firebaseAnalytics.logAttPromptResult(
+      status: status,
+      responseTimeMs: responseTimeMs,
+      wasFirstRequest: wasFirstRequest,
+    );
+  }
+
+  // =============================================
+  // ENHANCED PAYWALL ANALYTICS
+  // =============================================
+
+  /// Log paywall loaded with package details
+  Future<void> logPaywallLoaded({
+    required String source,
+    required int packageCount,
+    required int loadDurationMs,
+  }) async {
+    await _firebaseAnalytics.logPaywallLoaded(
+      source: source,
+      packageCount: packageCount,
+      loadDurationMs: loadDurationMs,
+    );
+  }
+
+  /// Log paywall close button tapped
+  Future<void> logPaywallCloseTapped({
+    required String source,
+    required int timeSpentSeconds,
+  }) async {
+    await _firebaseAnalytics.logPaywallCloseTapped(
+      source: source,
+      timeSpentSeconds: timeSpentSeconds,
+    );
+  }
+
+  /// Log paywall subscribe/CTA button tapped
+  Future<void> logPaywallCtaTapped({
+    required String source,
+    required String productId,
+    required String packageType,
+  }) async {
+    await _firebaseAnalytics.logPaywallCtaTapped(
+      source: source,
+      productId: productId,
+      packageType: packageType,
+    );
+  }
+
+  /// Log paywall package selected
+  Future<void> logPaywallPackageSelected({
+    required String source,
+    required String productId,
+    required String packageType,
+    required String price,
+  }) async {
+    await _firebaseAnalytics.logPaywallPackageSelected(
+      source: source,
+      productId: productId,
+      packageType: packageType,
+      price: price,
+    );
+  }
+
+  /// Log paywall restore tapped
+  Future<void> logPaywallRestoreTapped({
+    required String source,
+  }) async {
+    await _firebaseAnalytics.logPaywallRestoreTapped(source: source);
+  }
+
+  // =============================================
+  // ENHANCED CURRENCY USAGE ANALYTICS
+  // =============================================
+
+  /// Log currency search query
+  Future<void> logCurrencySearch({
+    required String query,
+    required int resultCount,
+  }) async {
+    await _firebaseAnalytics.logCurrencySearch(
+      query: query,
+      resultCount: resultCount,
+    );
+  }
+
+  /// Set user property for most-used currency pair
+  Future<void> setMostUsedCurrencyPair(String pair) async {
+    await _firebaseAnalytics.setMostUsedCurrencyPair(pair);
+  }
+
+  /// Set user property for currency count
+  Future<void> setUserCurrencyCount(int count) async {
+    await _firebaseAnalytics.setUserCurrencyCount(count);
+  }
+
+  /// Log session conversion count
+  Future<void> logSessionConversionCount({required int count}) async {
+    await _firebaseAnalytics.logSessionConversionCount(count: count);
+  }
+
+  // =============================================
+  // AD ATTRIBUTION & CAMPAIGN TRACKING
+  // =============================================
+
+  /// Log campaign attribution data
+  Future<void> logCampaignAttribution({
+    String? source,
+    String? medium,
+    String? campaign,
+  }) async {
+    await _firebaseAnalytics.logCampaignAttribution(
+      source: source,
+      medium: medium,
+      campaign: campaign,
+    );
+  }
+
+  /// Log first open with install attribution
+  Future<void> logFirstOpen({
+    required String platform,
+    String? installSource,
+  }) async {
+    await _firebaseAnalytics.logFirstOpen(
+      platform: platform,
+      installSource: installSource,
+    );
+  }
 }

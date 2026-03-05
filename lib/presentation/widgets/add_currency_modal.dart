@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/di/injection.dart';
+import '../../core/services/analytics/analytics_manager.dart';
 import '../../domain/models/currency.dart';
 import 'currency_icon.dart';
 
@@ -60,10 +62,12 @@ class AddCurrencyModal extends StatefulWidget {
 
 class _AddCurrencyModalState extends State<AddCurrencyModal> {
   final AppTheme _appTheme = getIt<AppTheme>();
+  final AnalyticsManager _analytics = getIt<AnalyticsManager>();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
   late List<Currency> _filteredCurrencies;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -73,6 +77,7 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -93,6 +98,17 @@ class _AddCurrencyModalState extends State<AddCurrencyModal> {
         }).toList();
       }
     });
+
+    // Debounced search analytics (log after 800ms of no typing)
+    _searchDebounce?.cancel();
+    if (query.length >= 2) {
+      _searchDebounce = Timer(const Duration(milliseconds: 800), () {
+        _analytics.logCurrencySearch(
+          query: query,
+          resultCount: _filteredCurrencies.length,
+        );
+      });
+    }
   }
 
   @override

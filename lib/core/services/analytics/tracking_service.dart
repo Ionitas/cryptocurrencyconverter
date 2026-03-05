@@ -44,16 +44,30 @@ class TrackingService {
 
       // If not determined, request permission
       if (_status == TrackingStatus.notDetermined) {
+        // Log ATT prompt shown
+        await FirebaseAnalyticsService.instance.logAttPromptShown();
+
         // Small delay recommended by Apple
         await Future.delayed(const Duration(milliseconds: 200));
 
+        final promptStart = DateTime.now();
         _status = await AppTrackingTransparency.requestTrackingAuthorization();
+        final responseTimeMs =
+            DateTime.now().difference(promptStart).inMilliseconds;
+
         _hasRequestedPermission = true;
 
         AppLogger.i('TrackingService', 'Authorization result: $_status');
+
+        // Log detailed ATT result with timing
+        await FirebaseAnalyticsService.instance.logAttPromptResult(
+          status: _statusToString(_status!),
+          responseTimeMs: responseTimeMs,
+          wasFirstRequest: true,
+        );
       }
 
-      // Log the tracking status
+      // Log the tracking status (legacy event for backward compatibility)
       await FirebaseAnalyticsService.instance.logTrackingAuthorizationStatus(
         status: _statusToString(_status!),
       );

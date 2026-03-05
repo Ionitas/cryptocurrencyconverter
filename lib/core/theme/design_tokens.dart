@@ -331,9 +331,36 @@ abstract class DesignTokens {
     return width >= 600 ? screenPaddingHTablet : screenPaddingH;
   }
 
-  /// Check if device is tablet
+  /// Check if device is tablet (shortestSide >= 600)
   static bool isTablet(BuildContext context) {
     return MediaQuery.of(context).size.shortestSide >= 600;
+  }
+
+  /// Check if device is a small phone (height < 700, e.g. iPhone SE, 8)
+  static bool isSmallDevice(BuildContext context) {
+    return MediaQuery.of(context).size.height < 700;
+  }
+
+  /// Check if device is a large phone (height >= 900, e.g. iPhone Pro Max)
+  static bool isLargePhone(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return size.height >= 900 && size.shortestSide < 600;
+  }
+
+  /// Returns a continuous scale factor based on screen height.
+  /// Baseline is 844px (iPhone 14/15 logical height).
+  /// Returns ~0.82 for SE (667px), ~1.0 for 14 (844px),
+  /// ~1.06 for Pro Max (932px), ~1.2+ for tablets.
+  static double responsiveScale(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+    return (height / 844).clamp(0.75, 1.4);
+  }
+
+  /// Scale a value proportionally to screen height.
+  /// Useful for icon sizes, spacing, and font sizes that should
+  /// shrink on small phones and grow on tablets.
+  static double scaled(BuildContext context, double value) {
+    return value * responsiveScale(context);
   }
 
   /// Get bottom safe area padding

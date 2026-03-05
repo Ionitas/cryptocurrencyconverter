@@ -70,83 +70,94 @@ class _CalculatorPadState extends State<CalculatorPad> {
   Widget build(BuildContext context) {
     final bottomPadding = DesignTokens.getBottomPadding(context);
     final isTablet = DesignTokens.isTablet(context);
-    final buttonPadding = isTablet ? DesignTokens.space : DesignTokens.spaceM;
+    final isSmall = DesignTokens.isSmallDevice(context);
+    // Scale button vertical padding based on screen height
+    final buttonPadding = isTablet
+        ? DesignTokens.space
+        : (isSmall ? DesignTokens.spaceS + 2 : DesignTokens.spaceM);
     final buttonSpacing =
         isTablet ? DesignTokens.radiusS : DesignTokens.spaceS - 2;
-    final fontSize = isTablet ? DesignTokens.textHeadline : DesignTokens.textL;
-    final equalsFontSize = isTablet ? 26.0 : DesignTokens.textHeadline;
+    final fontSize = isTablet
+        ? DesignTokens.textHeadline
+        : (isSmall ? DesignTokens.text : DesignTokens.textL);
+    final equalsFontSize = isTablet
+        ? 26.0
+        : (isSmall ? DesignTokens.textL : DesignTokens.textHeadline);
 
-    return ClipRRect(
-      borderRadius:
-          BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(
-            sigmaX: DesignTokens.blurHeavy, sigmaY: DesignTokens.blurHeavy),
-        child: Container(
-          padding: EdgeInsets.only(
-            left: DesignTokens.spaceM,
-            right: DesignTokens.spaceM,
-            top: DesignTokens.radiusS,
-            bottom: bottomPadding,
-          ),
-          decoration: BoxDecoration(
-            color: widget.appTheme.surface
-                .withValues(alpha: DesignTokens.opacityVeryHigh),
-            borderRadius: BorderRadius.vertical(
-                top: Radius.circular(DesignTokens.radiusXXL)),
-            border: Border(
-              top: BorderSide(
-                color:
-                    Colors.white.withValues(alpha: DesignTokens.opacityMediumLight),
-                width: DesignTokens.borderThin,
-              ),
+    return RepaintBoundary(
+      child: ClipRRect(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(DesignTokens.radiusXXL)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+              sigmaX: DesignTokens.blurHeavy, sigmaY: DesignTokens.blurHeavy),
+          child: Container(
+            padding: EdgeInsets.only(
+              left: DesignTokens.spaceM,
+              right: DesignTokens.spaceM,
+              top: DesignTokens.radiusS,
+              bottom: bottomPadding,
             ),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    Colors.black.withValues(alpha: DesignTokens.shadowOpacityHeavy),
-                blurRadius: DesignTokens.blurVeryHeavy,
-                offset: const Offset(0, -8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drag handle indicator
-              Container(
-                width: DesignTokens.dragHandleWidth,
-                height: DesignTokens.dragHandleHeight,
-                margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
-                decoration: BoxDecoration(
-                  color: widget.appTheme.primaryLight
-                      .withValues(alpha: DesignTokens.opacityVeryHeavy),
-                  borderRadius: BorderRadius.circular(DesignTokens.spaceXS / 2),
+            decoration: BoxDecoration(
+              color: widget.appTheme.surface
+                  .withValues(alpha: DesignTokens.opacityVeryHigh),
+              borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(DesignTokens.radiusXXL)),
+              border: Border(
+                top: BorderSide(
+                  color: Colors.white
+                      .withValues(alpha: DesignTokens.opacityMediumLight),
+                  width: DesignTokens.borderThin,
                 ),
               ),
-              // Calculator buttons - using RepaintBoundary for performance
-              RepaintBoundary(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(5, (rowIndex) {
-                    return Padding(
-                      padding: EdgeInsets.only(
-                          bottom: rowIndex < 4 ? buttonSpacing : 0),
-                      child: _CalculatorRow(
-                        values: _buttonValues[rowIndex],
-                        types: _buttonTypes[rowIndex],
-                        appTheme: widget.appTheme,
-                        buttonPadding: buttonPadding,
-                        fontSize: fontSize,
-                        equalsFontSize: equalsFontSize,
-                        onInput: widget.onInput,
-                        onHide: widget.onHide,
-                      ),
-                    );
-                  }),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black
+                      .withValues(alpha: DesignTokens.shadowOpacityHeavy),
+                  blurRadius: DesignTokens.blurVeryHeavy,
+                  offset: const Offset(0, -8),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag handle indicator
+                Container(
+                  width: DesignTokens.dragHandleWidth,
+                  height: DesignTokens.dragHandleHeight,
+                  margin: EdgeInsets.only(bottom: DesignTokens.spaceM),
+                  decoration: BoxDecoration(
+                    color: widget.appTheme.primaryLight
+                        .withValues(alpha: DesignTokens.opacityVeryHeavy),
+                    borderRadius:
+                        BorderRadius.circular(DesignTokens.spaceXS / 2),
+                  ),
+                ),
+                // Calculator buttons - using RepaintBoundary for performance
+                RepaintBoundary(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(5, (rowIndex) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            bottom: rowIndex < 4 ? buttonSpacing : 0),
+                        child: _CalculatorRow(
+                          values: _buttonValues[rowIndex],
+                          types: _buttonTypes[rowIndex],
+                          appTheme: widget.appTheme,
+                          buttonPadding: buttonPadding,
+                          fontSize: fontSize,
+                          equalsFontSize: equalsFontSize,
+                          onInput: widget.onInput,
+                          onHide: widget.onHide,
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -280,7 +291,12 @@ class _CalculatorButtonState extends State<_CalculatorButton>
 
   void _handleTapUp(TapUpDetails details) {
     _controller.reverse();
-    HapticFeedback.lightImpact();
+    // Stronger haptic for equals button to confirm calculation
+    if (widget.type == _ButtonType.equals) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.lightImpact();
+    }
     if (widget.type == _ButtonType.hide) {
       widget.onHide();
     } else {

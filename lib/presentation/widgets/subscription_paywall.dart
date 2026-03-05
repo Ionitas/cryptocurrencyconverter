@@ -5,10 +5,12 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/design_tokens.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/services/subscription/subscription_service.dart';
 import '../../../core/services/analytics/logging_system.dart';
 import '../../../core/services/analytics/conversion_tracking_service.dart';
+import '../../../core/services/analytics/analytics_manager.dart';
 import '../utils/snackbar_helper.dart';
 import 'cooldown_button.dart';
 
@@ -59,6 +61,11 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
   final SubscriptionService _subscriptionService = SubscriptionService.instance;
   final ConversionTrackingService _conversionTracking =
       ConversionTrackingService.instance;
+  final AnalyticsManager _analytics = getIt<AnalyticsManager>();
+
+  // Timing
+  late DateTime _paywallOpenTime;
+  late DateTime _loadStartTime;
 
   // URL placeholders - will be updated by user
   static const String _termsUrl =
@@ -101,6 +108,8 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
     );
 
     _animController.forward();
+    _paywallOpenTime = DateTime.now();
+    _loadStartTime = DateTime.now();
     _loadPackages();
     _conversionTracking.trackPaywallView(
       source: widget.isOnboarding ? 'onboarding' : 'modal',
@@ -130,6 +139,16 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
             orElse: () => packages.isNotEmpty ? packages.first : packages.first,
           );
         });
+
+        // Log paywall loaded with package count and load duration
+        final source = widget.isOnboarding ? 'onboarding' : 'modal';
+        final loadDurationMs =
+            DateTime.now().difference(_loadStartTime).inMilliseconds;
+        _analytics.logPaywallLoaded(
+          source: source,
+          packageCount: packages.length,
+          loadDurationMs: loadDurationMs,
+        );
       }
     } catch (e) {
       AppLogger.e('SubscriptionPaywall', 'Failed to load packages', error: e);
@@ -141,6 +160,14 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
 
   Future<void> _handlePurchase() async {
     if (_selectedPackage == null) return;
+
+    // Log CTA tap
+    final source = widget.isOnboarding ? 'onboarding' : 'modal';
+    _analytics.logPaywallCtaTapped(
+      source: source,
+      productId: _selectedPackage!.storeProduct.identifier,
+      packageType: _selectedPackage!.packageType.name,
+    );
 
     setState(() => _isLoading = true);
     HapticFeedback.mediumImpact();
@@ -183,6 +210,8 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
   }
 
   Future<void> _handleRestore() async {
+    final source = widget.isOnboarding ? 'onboarding' : 'modal';
+    _analytics.logPaywallRestoreTapped(source: source);
     setState(() => _isLoading = true);
     HapticFeedback.lightImpact();
 
@@ -236,11 +265,17 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
   Widget _buildContent() {
     // Calculate responsive max height based on screen size
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = DesignTokens.isTablet(context);
     final maxHeight = screenHeight * 0.85; // 85% of screen height
+    // Widen on tablets; constrain on phones
+    final maxWidth = isTablet ? (screenWidth * 0.6).clamp(400.0, 560.0) : 400.0;
 
     return Container(
-      constraints:
-          BoxConstraints(maxWidth: 400, maxHeight: maxHeight.clamp(500, 750)),
+      constraints: BoxConstraints(
+        maxWidth: maxWidth,
+        maxHeight: maxHeight.clamp(500, isTablet ? 850 : 750),
+      ),
       decoration: BoxDecoration(
         color: _appTheme.surface,
         borderRadius: BorderRadius.circular(24),
@@ -360,6 +395,13 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
         cooldownSeconds: 3,
         onTouch: () {
           HapticFeedback.lightImpact();
+          final source = widget.isOnboarding ? 'onboarding' : 'modal';
+          final timeSpent =
+              DateTime.now().difference(_paywallOpenTime).inSeconds;
+          _analytics.logPaywallCloseTapped(
+            source: source,
+            timeSpentSeconds: timeSpent,
+          );
           _conversionTracking.trackPaywallResult(result: 'dismissed');
           widget.onClose?.call();
         },
@@ -374,11 +416,15 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
   }
 
   Widget _buildPremiumIcon() {
+    final scale = DesignTokens.responsiveScale(context);
+    final iconSize = (80 * scale).clamp(64, 100).toDouble();
+    final borderRadius = (22 * scale).clamp(16, 28).toDouble();
+
     return Container(
-      width: 80,
-      height: 80,
+      width: iconSize,
+      height: iconSize,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
             color: _appTheme.primary.withValues(alpha: 0.4),
@@ -388,11 +434,11 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(borderRadius),
         child: Image.asset(
           'assets/images/icon.png',
-          width: 80,
-          height: 80,
+          width: iconSize,
+          height: iconSize,
           fit: BoxFit.cover,
         ),
       ),
@@ -463,6 +509,13 @@ class _SubscriptionPaywallState extends State<SubscriptionPaywall>
       onTap: () {
         HapticFeedback.selectionClick();
         setState(() => _selectedPackage = package);
+        final source = widget.isOnboarding ? 'onboarding' : 'modal';
+        _analytics.logPaywallPackageSelected(
+          source: source,
+          productId: package.storeProduct.identifier,
+          packageType: package.packageType.name,
+          price: priceString,
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),

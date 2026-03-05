@@ -542,6 +542,249 @@ class FirebaseAnalyticsService {
     );
   }
 
+  // =============================================
+  // ONBOARDING FUNNEL ANALYTICS (ENHANCED)
+  // =============================================
+
+  /// Log onboarding step with timing data
+  Future<void> logOnboardingStepWithTiming({
+    required int stepNumber,
+    required String stepName,
+    required int durationMs,
+  }) async {
+    await logEvent(
+      name: 'onboarding_step_timed',
+      parameters: {
+        'step_number': stepNumber,
+        'step_name': stepName,
+        'duration_ms': durationMs,
+      },
+    );
+  }
+
+  /// Log country selected during onboarding
+  Future<void> logOnboardingCountrySelected({
+    required String countryCode,
+    required String countryName,
+    required bool wasAutoDetected,
+  }) async {
+    await logEvent(
+      name: 'onboarding_country_selected',
+      parameters: {
+        'country_code': countryCode,
+        'country_name': countryName,
+        'auto_detected': wasAutoDetected ? 1 : 0,
+      },
+    );
+  }
+
+  /// Log purpose selected during onboarding
+  Future<void> logOnboardingPurposeSelected({
+    required String purpose,
+  }) async {
+    await logEvent(
+      name: 'onboarding_purpose_selected',
+      parameters: {
+        'purpose': purpose,
+      },
+    );
+  }
+
+  /// Log total onboarding completion time
+  Future<void> logOnboardingCompleteTimed({
+    required int totalDurationSeconds,
+    required String? countryCode,
+    required String? purpose,
+  }) async {
+    await logEvent(
+      name: 'onboarding_complete_timed',
+      parameters: {
+        'total_duration_seconds': totalDurationSeconds,
+        if (countryCode != null) 'country_code': countryCode,
+        if (purpose != null) 'purpose': purpose,
+      },
+    );
+  }
+
+  // =============================================
+  // ATT / TRACKING ANALYTICS (ENHANCED)
+  // =============================================
+
+  /// Log ATT prompt shown event
+  Future<void> logAttPromptShown() async {
+    await logEvent(name: 'att_prompt_shown');
+  }
+
+  /// Log ATT prompt result with timing
+  Future<void> logAttPromptResult({
+    required String status,
+    required int responseTimeMs,
+    required bool wasFirstRequest,
+  }) async {
+    await logEvent(
+      name: 'att_prompt_result',
+      parameters: {
+        'status': status,
+        'response_time_ms': responseTimeMs,
+        'first_request': wasFirstRequest ? 1 : 0,
+      },
+    );
+  }
+
+  // =============================================
+  // PAYWALL ANALYTICS (ENHANCED)
+  // =============================================
+
+  /// Log paywall loaded with package details
+  Future<void> logPaywallLoaded({
+    required String source,
+    required int packageCount,
+    required int loadDurationMs,
+  }) async {
+    await logEvent(
+      name: 'paywall_loaded',
+      parameters: {
+        'source': source,
+        'package_count': packageCount,
+        'load_duration_ms': loadDurationMs,
+      },
+    );
+  }
+
+  /// Log paywall close button tapped (distinct from dismissed)
+  Future<void> logPaywallCloseTapped({
+    required String source,
+    required int timeSpentSeconds,
+  }) async {
+    await logEvent(
+      name: 'paywall_close_tapped',
+      parameters: {
+        'source': source,
+        'time_spent_seconds': timeSpentSeconds,
+      },
+    );
+  }
+
+  /// Log paywall subscribe/CTA button tapped
+  Future<void> logPaywallCtaTapped({
+    required String source,
+    required String productId,
+    required String packageType,
+  }) async {
+    await logEvent(
+      name: 'paywall_cta_tapped',
+      parameters: {
+        'source': source,
+        'product_id': productId,
+        'package_type': packageType,
+      },
+    );
+  }
+
+  /// Log paywall package selected
+  Future<void> logPaywallPackageSelected({
+    required String source,
+    required String productId,
+    required String packageType,
+    required String price,
+  }) async {
+    await logEvent(
+      name: 'paywall_package_selected',
+      parameters: {
+        'source': source,
+        'product_id': productId,
+        'package_type': packageType,
+        'price': price,
+      },
+    );
+  }
+
+  /// Log paywall restore tapped
+  Future<void> logPaywallRestoreTapped({
+    required String source,
+  }) async {
+    await logEvent(
+      name: 'paywall_restore_tapped',
+      parameters: {
+        'source': source,
+      },
+    );
+  }
+
+  // =============================================
+  // CURRENCY USAGE ANALYTICS (ENHANCED)
+  // =============================================
+
+  /// Log currency search query in add-currency modal
+  Future<void> logCurrencySearch({
+    required String query,
+    required int resultCount,
+  }) async {
+    await logEvent(
+      name: 'currency_search',
+      parameters: {
+        'query': query.substring(0, query.length.clamp(0, 50)),
+        'result_count': resultCount,
+      },
+    );
+  }
+
+  /// Set user property for most-used currency pair
+  Future<void> setMostUsedCurrencyPair(String pair) async {
+    await setUserProperty(name: 'top_currency_pair', value: pair);
+  }
+
+  /// Set user property for total currencies count
+  Future<void> setUserCurrencyCount(int count) async {
+    await setUserProperty(name: 'currency_count', value: count.toString());
+  }
+
+  /// Log session conversion count
+  Future<void> logSessionConversionCount({
+    required int count,
+  }) async {
+    await logEvent(
+      name: 'session_conversion_count',
+      parameters: {
+        'count': count,
+      },
+    );
+  }
+
+  // =============================================
+  // AD ATTRIBUTION & CAMPAIGN TRACKING
+  // =============================================
+
+  /// Log campaign source for Google Ads attribution
+  Future<void> logCampaignAttribution({
+    String? source,
+    String? medium,
+    String? campaign,
+  }) async {
+    await logEvent(
+      name: 'campaign_attribution',
+      parameters: {
+        if (source != null) 'source': source,
+        if (medium != null) 'medium': medium,
+        if (campaign != null) 'campaign': campaign,
+      },
+    );
+  }
+
+  /// Log first open event with install attribution data
+  Future<void> logFirstOpen({
+    required String platform,
+    String? installSource,
+  }) async {
+    await logEvent(
+      name: 'first_open_attributed',
+      parameters: {
+        'platform': platform,
+        if (installSource != null) 'install_source': installSource,
+      },
+    );
+  }
+
   /// Set user property
   Future<void> setUserProperty({
     required String name,

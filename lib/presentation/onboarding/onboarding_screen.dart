@@ -53,6 +53,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   int _loadedCurrencyCount = 0;
   String _loadingStatus = 'Preparing...';
 
+  // Analytics timing
+  late DateTime _onboardingStartTime;
+  DateTime _stepStartTime = DateTime.now();
+
   // Default country if detection fails
   static const CountryInfo _defaultCountry = CountryInfo(
     name: 'United States',
@@ -68,6 +72,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    // Analytics: record onboarding start time
+    _onboardingStartTime = DateTime.now();
+    _stepStartTime = DateTime.now();
 
     // Log onboarding begin
     getIt<AnalyticsManager>().logOnboardingBegin();
@@ -148,8 +156,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void _goToNextPage() {
     if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutQuart,
       );
     }
   }
@@ -157,8 +165,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void _goToPreviousPage() {
     if (_currentPage > 0) {
       _pageController.previousPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutQuart,
       );
     }
   }
@@ -167,6 +175,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     setState(() {
       _selectedCountry = country;
     });
+
+    // Log country selection with auto-detect status
+    getIt<AnalyticsManager>().logOnboardingCountrySelected(
+      countryCode: country.code,
+      countryName: country.name,
+      wasAutoDetected: _detectedCountry?.code == country.code,
+    );
+
     _goToNextPage();
   }
 
@@ -174,6 +190,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     setState(() {
       _selectedPurpose = purpose;
     });
+
+    // Log purpose selection
+    getIt<AnalyticsManager>().logOnboardingPurposeSelected(
+      purpose: purpose.name,
+    );
 
     // Check if user already has an active subscription
     // If so, skip the paywall and complete onboarding
@@ -204,8 +225,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Future<void> _completeOnboarding() async {
-    // Log onboarding complete
+    // Log onboarding complete (standard GA4 event)
     getIt<AnalyticsManager>().logOnboardingComplete();
+
+    // Log onboarding complete with timing data
+    final totalDuration = DateTime.now().difference(_onboardingStartTime);
+    getIt<AnalyticsManager>().logOnboardingCompleteTimed(
+      totalDurationSeconds: totalDuration.inSeconds,
+      countryCode: _selectedCountry?.code,
+      purpose: _selectedPurpose?.name,
+    );
 
     // Save onboarding data
     await _onboardingService.saveOnboardingData(
@@ -251,10 +280,31 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (page) {
+                  // Log timing for the page we're leaving
+                  final stepDuration =
+                      DateTime.now().difference(_stepStartTime);
+                  final previousStepNames = {
+                    0: 'welcome',
+                    1: 'features',
+                    2: 'country_selection',
+                    3: 'purpose_selection',
+                    4: 'paywall',
+                  };
+                  if (_currentPage < _totalPages) {
+                    getIt<AnalyticsManager>().logOnboardingStepWithTiming(
+                      stepNumber: _currentPage,
+                      stepName: previousStepNames[_currentPage] ?? 'unknown',
+                      durationMs: stepDuration.inMilliseconds,
+                    );
+                  }
+
+                  // Reset timer for new step
+                  _stepStartTime = DateTime.now();
+
                   setState(() {
                     _currentPage = page;
                   });
-                  // Log onboarding step analytics for pages 2-4
+                  // Log onboarding step analytics
                   final stepNames = {
                     0: 'welcome',
                     1: 'features',

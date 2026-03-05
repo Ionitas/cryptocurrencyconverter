@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../domain/models/currency.dart';
 import '../../domain/repositories/currency_repository.dart';
 import '../../core/di/injection.dart';
@@ -484,6 +485,7 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   void _showCalculator() {
+    HapticFeedback.lightImpact();
     getIt<AnalyticsManager>().logUserEngagement(action: 'calculator_open');
     _calculatorController.animateTo(
       1.0,
@@ -539,11 +541,11 @@ class ConverterScreenState extends State<ConverterScreen>
         curve: Curves.easeOut,
       );
     } else {
-      // Snap back with spring-like animation
+      // Snap back with spring-like bounce
       _calculatorController.animateTo(
         1.0,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutBack,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.elasticOut,
       );
     }
   }
@@ -744,13 +746,16 @@ class ConverterScreenState extends State<ConverterScreen>
   }
 
   Widget _buildCurrencyList() {
-    final mediaQuery = MediaQuery.of(context);
-    final isTablet = mediaQuery.size.shortestSide >= 600;
-    final horizontalPadding = isTablet ? 24.0 : 16.0;
-    // Dynamic bottom spacing for calculator overlay
+    final isTablet = DesignTokens.isTablet(context);
+    final horizontalPadding = isTablet
+        ? DesignTokens.screenPaddingHTablet
+        : DesignTokens.screenPaddingH;
+    // Dynamic bottom spacing for calculator overlay.
+    // Use responsive scale so spacing doesn't feel cramped on SE or bloated on Max.
+    final baseBottom = isTablet ? 100.0 : 80.0;
     final bottomSpacing = _calculatorHeight > 0
-        ? _calculatorHeight + 20
-        : (isTablet ? 100.0 : 80.0);
+        ? _calculatorHeight + DesignTokens.spaceL
+        : DesignTokens.scaled(context, baseBottom);
 
     // Recompute conversions only when the inputs actually change
     final conversionKey =
@@ -785,17 +790,20 @@ class ConverterScreenState extends State<ConverterScreen>
               final currency = _displayCurrencies[index];
               return RepaintBoundary(
                 key: ValueKey(currency.symbol),
-                child: CurrencyCard(
-                  currency: currency,
-                  selectedCurrency: _selectedCurrency!,
+                child: _StaggeredEntrance(
                   index: index,
-                  convertedAmount: _cachedConversions[currency.symbol] ?? 0.0,
-                  exchangeRate: _cachedExchangeRates[currency.symbol] ?? 0.0,
-                  appTheme: _appTheme,
-                  onTap: () => _swapCurrency(currency, index),
-                  onDismissed: () => _removeCurrency(currency),
-                  onUndo: () => _addCurrency(currency),
-                  formatAmount: formatAmount,
+                  child: CurrencyCard(
+                    currency: currency,
+                    selectedCurrency: _selectedCurrency!,
+                    index: index,
+                    convertedAmount: _cachedConversions[currency.symbol] ?? 0.0,
+                    exchangeRate: _cachedExchangeRates[currency.symbol] ?? 0.0,
+                    appTheme: _appTheme,
+                    onTap: () => _swapCurrency(currency, index),
+                    onDismissed: () => _removeCurrency(currency),
+                    onUndo: () => _addCurrency(currency),
+                    formatAmount: formatAmount,
+                  ),
                 ),
               );
             },
@@ -886,5 +894,72 @@ class _MeasureSizeState extends State<_MeasureSize> {
   @override
   Widget build(BuildContext context) {
     return widget.child;
+  }
+}
+
+/// Animates each currency card in with a staggered fade + slide.
+/// The delay increases per [index] so cards cascade into view.
+class _StaggeredEntrance extends StatefulWidget {
+  final int index;
+  final Widget child;
+
+  const _StaggeredEntrance({
+    required this.index,
+    required this.child,
+  });
+
+  @override
+  State<_StaggeredEntrance> createState() => _StaggeredEntranceState();
+}
+
+class _StaggeredEntranceState extends State<_StaggeredEntrance>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.15),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    ));
+
+    // Stagger start by index — cap at 5 so later cards don't wait too long
+    final delayMs = (widget.index.clamp(0, 5)) * 60;
+    Future.delayed(Duration(milliseconds: delayMs), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: widget.child,
+      ),
+    );
   }
 }

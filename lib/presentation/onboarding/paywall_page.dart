@@ -8,6 +8,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/services/subscription/subscription_service.dart';
 import '../../core/services/analytics/logging_system.dart';
 import '../../core/services/analytics/conversion_tracking_service.dart';
+import '../../core/services/analytics/analytics_manager.dart';
+import '../../core/di/injection.dart';
 import '../utils/snackbar_helper.dart';
 import '../widgets/cooldown_button.dart';
 
@@ -38,6 +40,11 @@ class _PaywallPageState extends State<PaywallPage>
   final SubscriptionService _subscriptionService = SubscriptionService.instance;
   final ConversionTrackingService _conversionTracking =
       ConversionTrackingService.instance;
+  final AnalyticsManager _analytics = getIt<AnalyticsManager>();
+
+  // Timing
+  late DateTime _paywallOpenTime;
+  late DateTime _loadStartTime;
 
   // URL placeholders - will be updated by user
   static const String _termsUrl =
@@ -79,6 +86,8 @@ class _PaywallPageState extends State<PaywallPage>
     );
 
     _animController.forward();
+    _paywallOpenTime = DateTime.now();
+    _loadStartTime = DateTime.now();
     _loadPackages();
     _conversionTracking.trackPaywallView(source: 'onboarding');
   }
@@ -107,6 +116,15 @@ class _PaywallPageState extends State<PaywallPage>
             );
           }
         });
+
+        // Log paywall loaded with package count and load duration
+        final loadDurationMs =
+            DateTime.now().difference(_loadStartTime).inMilliseconds;
+        _analytics.logPaywallLoaded(
+          source: 'onboarding',
+          packageCount: packages.length,
+          loadDurationMs: loadDurationMs,
+        );
       }
     } catch (e) {
       AppLogger.e('PaywallPage', 'Failed to load packages', error: e);
@@ -118,6 +136,13 @@ class _PaywallPageState extends State<PaywallPage>
 
   Future<void> _handlePurchase() async {
     if (_selectedPackage == null) return;
+
+    // Log CTA tap
+    _analytics.logPaywallCtaTapped(
+      source: 'onboarding',
+      productId: _selectedPackage!.storeProduct.identifier,
+      packageType: _selectedPackage!.packageType.name,
+    );
 
     setState(() => _isLoading = true);
     HapticFeedback.mediumImpact();
@@ -160,6 +185,7 @@ class _PaywallPageState extends State<PaywallPage>
   }
 
   Future<void> _handleRestore() async {
+    _analytics.logPaywallRestoreTapped(source: 'onboarding');
     setState(() => _isLoading = true);
     HapticFeedback.lightImpact();
 
@@ -225,6 +251,12 @@ class _PaywallPageState extends State<PaywallPage>
               cooldownSeconds: 3,
               onTouch: () {
                 HapticFeedback.lightImpact();
+                final timeSpent =
+                    DateTime.now().difference(_paywallOpenTime).inSeconds;
+                _analytics.logPaywallCloseTapped(
+                  source: 'onboarding',
+                  timeSpentSeconds: timeSpent,
+                );
                 _conversionTracking.trackPaywallResult(result: 'dismissed');
                 widget.onClose();
               },
@@ -486,6 +518,12 @@ class _PaywallPageState extends State<PaywallPage>
       onTap: () {
         HapticFeedback.selectionClick();
         setState(() => _selectedPackage = package);
+        _analytics.logPaywallPackageSelected(
+          source: 'onboarding',
+          productId: package.storeProduct.identifier,
+          packageType: package.packageType.name,
+          price: priceString,
+        );
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),

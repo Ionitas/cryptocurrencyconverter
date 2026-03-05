@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/design_tokens.dart';
 import '../../../core/di/injection.dart';
 import 'subscription_paywall.dart';
 
@@ -33,8 +34,9 @@ class UpgradeToPremiumWidget extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: appTheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: appTheme.primary, width: 2),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusXXL),
+          border:
+              Border.all(color: appTheme.primary, width: DesignTokens.border),
         ),
         child: Column(
           children: [
@@ -86,7 +88,7 @@ class UpgradeToPremiumWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
                   color: appTheme.primary,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(DesignTokens.radiusM),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -142,12 +144,13 @@ class UpgradeToPremiumButton extends StatelessWidget {
             end: Alignment.centerRight,
             colors: [appTheme.primary, appTheme.accent],
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(DesignTokens.radiusM),
           boxShadow: [
             BoxShadow(
-              color: appTheme.primary.withValues(alpha: 0.4),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: appTheme.primary
+                  .withValues(alpha: DesignTokens.shadowOpacityGlow),
+              blurRadius: DesignTokens.shadowBlurM,
+              offset: const Offset(0, DesignTokens.shadowOffsetM),
             ),
           ],
         ),

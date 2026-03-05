@@ -61,6 +61,7 @@ class _CurrencyCardState extends State<CurrencyCard>
 
   void _onTapDown(TapDownDetails details) {
     _scaleController.forward();
+    HapticFeedback.selectionClick();
   }
 
   void _onTapUp(TapUpDetails details) {
@@ -144,13 +145,7 @@ class _CurrencyCardState extends State<CurrencyCard>
                     color: widget.appTheme.surfaceLight.withValues(alpha: 0.3),
                     width: 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  boxShadow: DesignTokens.cardShadow(Colors.black),
                 ),
                 child: Row(
                   children: [

@@ -83,7 +83,8 @@ class _WelcomePageState extends State<WelcomePage>
   Widget build(BuildContext context) {
     final appTheme = widget.appTheme;
     final screenHeight = MediaQuery.of(context).size.height;
-    final isSmallScreen = screenHeight < 700;
+    final isSmall = DesignTokens.isSmallDevice(context);
+    final scale = DesignTokens.responsiveScale(context);
 
     return AnimatedBuilder(
       animation: _animController,
@@ -97,37 +98,38 @@ class _WelcomePageState extends State<WelcomePage>
             ),
             child: Column(
               children: [
-                SizedBox(height: isSmallScreen ? 40 : 60),
+                SizedBox(
+                    height: DesignTokens.scaled(context, isSmall ? 40 : 60)),
 
                 // App icon with enhanced animation and glow effect
                 Transform.scale(
                   scale: _scaleAnimation.value,
                   child: Opacity(
                     opacity: _fadeAnimation.value,
-                    child: _buildAppIcon(appTheme),
+                    child: _buildAppIcon(appTheme, scale),
                   ),
                 ),
 
-                SizedBox(height: isSmallScreen ? 32 : 48),
+                SizedBox(
+                    height: DesignTokens.scaled(context, isSmall ? 32 : 48)),
 
                 // Welcome text with improved typography
                 SlideTransition(
                   position: _slideAnimation,
                   child: FadeTransition(
                     opacity: _fadeAnimation,
-                    child: _buildWelcomeText(appTheme, isSmallScreen),
+                    child: _buildWelcomeText(appTheme, isSmall, scale),
                   ),
                 ),
 
-                SizedBox(height: isSmallScreen ? 40 : 60),
+                SizedBox(
+                    height: DesignTokens.scaled(context, isSmall ? 40 : 60)),
 
-                // Feature highlights
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: _buildFeatureHighlights(appTheme),
-                ),
+                // Feature highlights with staggered entrance
+                _buildFeatureHighlights(appTheme, scale),
 
-                SizedBox(height: isSmallScreen ? 24 : 32),
+                SizedBox(
+                    height: DesignTokens.scaled(context, isSmall ? 24 : 32)),
 
                 // Loading status indicator
                 FadeTransition(
@@ -135,7 +137,8 @@ class _WelcomePageState extends State<WelcomePage>
                   child: _buildLoadingStatus(appTheme),
                 ),
 
-                SizedBox(height: isSmallScreen ? 16 : 24),
+                SizedBox(
+                    height: DesignTokens.scaled(context, isSmall ? 16 : 24)),
 
                 // Get Started button
                 FadeTransition(
@@ -152,7 +155,11 @@ class _WelcomePageState extends State<WelcomePage>
     );
   }
 
-  Widget _buildAppIcon(AppTheme appTheme) {
+  Widget _buildAppIcon(AppTheme appTheme, double scale) {
+    final glowSize = (140 * scale).roundToDouble();
+    final iconSize = (120 * scale).roundToDouble();
+    final borderRadius = (32 * scale).roundToDouble();
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -161,8 +168,8 @@ class _WelcomePageState extends State<WelcomePage>
           animation: _shimmerController,
           builder: (context, child) {
             return Container(
-              width: 140,
-              height: 140,
+              width: glowSize,
+              height: glowSize,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: SweepGradient(
@@ -180,10 +187,10 @@ class _WelcomePageState extends State<WelcomePage>
         ),
         // Icon container
         Container(
-          width: 120,
-          height: 120,
+          width: iconSize,
+          height: iconSize,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(borderRadius),
             boxShadow: [
               BoxShadow(
                 color: appTheme.primary.withValues(alpha: 0.5),
@@ -198,11 +205,11 @@ class _WelcomePageState extends State<WelcomePage>
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(borderRadius),
             child: Image.asset(
               'assets/images/icon.png',
-              width: 120,
-              height: 120,
+              width: iconSize,
+              height: iconSize,
               fit: BoxFit.cover,
             ),
           ),
@@ -211,7 +218,11 @@ class _WelcomePageState extends State<WelcomePage>
     );
   }
 
-  Widget _buildWelcomeText(AppTheme appTheme, bool isSmallScreen) {
+  Widget _buildWelcomeText(
+      AppTheme appTheme, bool isSmallScreen, double scale) {
+    final titleSize = (isSmallScreen ? 28.0 : 34.0) * scale;
+    final subtitleSize = (isSmallScreen ? 15.0 : 16.0) * scale;
+
     return Column(
       children: [
         Container(
@@ -246,7 +257,7 @@ class _WelcomePageState extends State<WelcomePage>
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: appTheme.textPrimary,
-                fontSize: isSmallScreen ? 28 : 34,
+                fontSize: titleSize.clamp(24, 42),
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
                 height: 1.1,
@@ -262,7 +273,7 @@ class _WelcomePageState extends State<WelcomePage>
             textAlign: TextAlign.center,
             style: TextStyle(
               color: appTheme.textSecondary,
-              fontSize: isSmallScreen ? 15 : 16,
+              fontSize: subtitleSize.clamp(13, 18),
               height: 1.5,
               fontWeight: FontWeight.w400,
             ),
@@ -272,15 +283,18 @@ class _WelcomePageState extends State<WelcomePage>
     );
   }
 
-  Widget _buildFeatureHighlights(AppTheme appTheme) {
+  Widget _buildFeatureHighlights(AppTheme appTheme, double scale) {
     final features = [
       ('🌍', '225+ Currencies'),
       ('⚡', 'Real-time Rates'),
       ('📊', 'Smart Calculator'),
     ];
 
+    final itemHeight = (90 * scale).clamp(76, 110).toDouble();
+    final emojiSize = (26 * scale).clamp(20, 32).toDouble();
+
     return SizedBox(
-      height: 90,
+      height: itemHeight,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -289,33 +303,53 @@ class _WelcomePageState extends State<WelcomePage>
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final feature = features[index];
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(
-              color: appTheme.surface.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: appTheme.surfaceLight.withValues(alpha: 0.5),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  feature.$1,
-                  style: const TextStyle(fontSize: 26),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  feature.$2,
-                  style: TextStyle(
-                    color: appTheme.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+          // Staggered entrance: each card fades/slides in with a delay
+          final staggerInterval = Interval(
+            (0.3 + index * 0.12).clamp(0.0, 1.0),
+            (0.7 + index * 0.12).clamp(0.0, 1.0),
+            curve: Curves.easeOutCubic,
+          );
+          final itemFade = CurvedAnimation(
+            parent: _animController,
+            curve: staggerInterval,
+          );
+          return FadeTransition(
+            opacity: itemFade,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.3),
+                end: Offset.zero,
+              ).animate(itemFade),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: appTheme.surface.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: appTheme.surfaceLight.withValues(alpha: 0.5),
+                    width: 1,
                   ),
                 ),
-              ],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      feature.$1,
+                      style: TextStyle(fontSize: emojiSize),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      feature.$2,
+                      style: TextStyle(
+                        color: appTheme.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           );
         },

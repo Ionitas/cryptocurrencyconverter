@@ -7,8 +7,9 @@ import 'firebase_analytics_service.dart';
 import 'logging_system.dart';
 import 'tracking_service.dart';
 
-/// Conversion tracking service for GA4, Google Ads, and SKAdNetwork
-/// Only tracks conversions for users who have authorized tracking
+/// Conversion tracking service for GA4, Google Ads, and SKAdNetwork.
+/// GA4 events fire regardless of ATT status (they don't need IDFA).
+/// Only IDFA attribution for RevenueCat requires ATT authorization.
 class ConversionTrackingService {
   static ConversionTrackingService? _instance;
   static ConversionTrackingService get instance {
@@ -32,11 +33,17 @@ class ConversionTrackingService {
         'Initialized (SKAdNetwork handled by RevenueCat)');
   }
 
-  bool get _shouldTrack {
+  /// Whether analytics events can be tracked on this platform.
+  /// This does NOT gate behind ATT — GA4 events don't require IDFA.
+  /// Only IDFA attribution (in _trackRevenueCatConversion) checks ATT status.
+  bool get _canTrack {
     if (kIsWeb) return false;
     if (!Platform.isIOS && !Platform.isAndroid) return false;
-    return _trackingService.isAuthorized;
+    return true;
   }
+
+  /// Whether IDFA-based attribution is available (requires ATT authorization)
+  bool get _canAttributeWithIdfa => _canTrack && _trackingService.isAuthorized;
 
   Future<void> trackPurchase({
     required Package package,
@@ -49,7 +56,7 @@ class ConversionTrackingService {
     final period = _getSubscriptionPeriod(package.packageType);
     final hasTrial = product.introductoryPrice != null;
 
-    if (_shouldTrack) {
+    if (_canTrack) {
       await _trackFirebasePurchase(
         productId: productId,
         productName: _getProductName(package),
@@ -59,8 +66,6 @@ class ConversionTrackingService {
         hasTrial: hasTrial,
         transactionId: customerInfo.originalAppUserId,
       );
-    } else {
-      AppLogger.i('ConversionTracking', 'Skipping tracking - not authorized');
     }
 
     await _trackRevenueCatConversion(
@@ -77,7 +82,7 @@ class ConversionTrackingService {
     final currency = product.currencyCode;
     final period = _getSubscriptionPeriod(package.packageType);
 
-    if (_shouldTrack) {
+    if (_canTrack) {
       await _firebaseAnalytics.logTrialStarted(
         productId: productId,
         productName: _getProductName(package),
@@ -90,7 +95,7 @@ class ConversionTrackingService {
   Future<void> trackRestore({
     required CustomerInfo customerInfo,
   }) async {
-    if (_shouldTrack) {
+    if (_canTrack) {
       await _firebaseAnalytics.logEvent(
         name: 'subscription_restored',
         parameters: {
@@ -106,7 +111,7 @@ class ConversionTrackingService {
     int currencyCount = 0,
     int portfolioCount = 0,
   }) async {
-    if (_shouldTrack) {
+    if (_canTrack) {
       await _firebaseAnalytics.logPaywallView(
         source: source,
         currencyCount: currencyCount,
@@ -120,7 +125,7 @@ class ConversionTrackingService {
     String? productId,
     String? errorMessage,
   }) async {
-    if (_shouldTrack) {
+    if (_canTrack) {
       await _firebaseAnalytics.logPaywallResult(
         result: result,
         productId: productId,
@@ -158,15 +163,19 @@ class ConversionTrackingService {
     required CustomerInfo customerInfo,
   }) async {
     try {
-      final idfa = await _trackingService.getAdvertisingIdentifier();
+      // Only attempt IDFA attribution if ATT is authorized
+      if (_canAttributeWithIdfa) {
+        final idfa = await _trackingService.getAdvertisingIdentifier();
 
-      if (idfa != null && idfa.isNotEmpty) {
-        await Purchases.setAttributes({
-          'idfa': idfa,
-        });
-        AppLogger.s('ConversionTracking', 'IDFA attributed to RevenueCat');
+        if (idfa != null && idfa.isNotEmpty) {
+          await Purchases.setAttributes({
+            'idfa': idfa,
+          });
+          AppLogger.s('ConversionTracking', 'IDFA attributed to RevenueCat');
+        }
       }
 
+      // Always collect device identifiers (non-IDFA identifiers work without ATT)
       await Purchases.collectDeviceIdentifiers();
 
       AppLogger.s('ConversionTracking',
